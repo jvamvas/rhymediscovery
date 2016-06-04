@@ -8,147 +8,15 @@ import codecs
 import math
 import os
 import pickle
-import string
 import sys
 from collections import defaultdict
 
-
-def remove_punct(s):
-    """remove non-letter chars"""
-    return ''.join(filter(lambda c: c not in string.punctuation and c not in string.digits, s))
 
 def get_wordset(poems):
     """get all words"""
     words=sorted(list(set(reduce(lambda x, y: x+y, poems))))
     return words
 
-def get_rhymelists(poem, scheme):
-    """transform poem into lists of rhymesets as given by rhyme scheme"""
-    rhymelists=defaultdict(list)
-    for poemword, schemeword in zip(poem, scheme):
-        rhymelists[schemeword].append(poemword)
-    return map(sorted, rhymelists.values())
-
-patstr=list(string.lowercase+string.uppercase)+map(str, range(50))
-
-def gen_pattern(seed, n):
-    """generate scheme from seed"""
-    seed=map(int, seed)
-    if n%len(seed)>0:
-        return "Error!"
-    pattern=seed[:]
-    increment=max(seed)
-    while len(pattern)<n:
-        pattern+=map(lambda seedunit: seedunit+increment, seed)
-        increment=max(pattern)
-    return map(str, pattern)
-
-def parse(filename):
-    """read rhyme schemes and poems/stanzas"""
-    f=map(lambda x:x.split(), codecs.open(filename, encoding='utf-8').readlines())
-    f=filter(lambda line: len(line)==0 or line[0] not in ['DATE', 'AUTHOR'], f)
-    
-    curscheme=[]
-    curpoemscheme=[]
-    stanzaschemes=[]
-    poemschemes=[]
-    curstanza=[]
-    poems=[]
-    stanzas=[]
-    for i, line in enumerate(f):
-        if len(line)==0:
-            if curstanza!=[]:
-                
-                if curscheme==[]:
-                    print "Error! No scheme read", curstanza
-                
-                stanzas.append(curstanza)
-                stanzasize=len(curstanza)
-                
-                if curscheme[-1]=='*':
-                    #generate pattern
-                    genscheme=gen_pattern(curscheme[:-1], stanzasize)
-                    if genscheme=='Error!':
-                        print "Error! Seed doesn't match", i, curstanza, curscheme[:-1]
-                    stanzaschemes.append(genscheme)
-                elif len(curscheme)!=stanzasize:
-                        print "Error! Stanza size and scheme size don't match", curstanza, curscheme
-                else:
-                    stanzaschemes.append(curscheme)
-
-                if curpoemscheme[-1]=='*':
-                    #generate pattern
-                    genscheme=gen_pattern(curpoemscheme[:-1], stanzasize)
-                    poemschemes.append(genscheme)
-                elif len(curpoemscheme)!=stanzasize:
-                        print "Error! Stanza size and scheme size don't match", curstanza, curpoemscheme
-                else:
-                    poemschemes.append(curpoemscheme)
-                
-                curstanza=[]
-        
-        elif line[0]=='RHYME':
-            curscheme=map(lambda x: str(patstr.index(x)+1), line[1:-1])
-            if line[-1]=='*':
-                curscheme.append('*')
-            else:
-                curscheme.append(str(patstr.index(line[-1])+1))
-
-            curpoemscheme=curscheme[:]  #in case RHYME-POEM isn't specified
-
-        elif line[0]=='RHYME-POEM':
-            curpoemscheme=map(lambda x: str(patstr.index(x)+1), line[1:])
-        
-        elif line[0]=='TITLE':
-            if stanzas!=[]:
-                poems.append(stanzas)
-                stanzas=[]
-        else:
-            line=filter(lambda x:x!='', map(remove_punct, line))
-            curstanza.append(line[-1].lower())
-
-    if curstanza!=[]:
-        stanzas.append(curstanza)
-        stanzaschemes.append(curscheme)
-        poemschemes.append(curpoemscheme)
-    
-    poems.append(stanzas)
-    
-    return [stanzaschemes, poemschemes, poems]
-
-def dist_schemes(rhymeschemes, storefile, store=False):
-    """all rhyme schemes of a given length, with frequencies"""
-    dist=defaultdict(lambda : defaultdict(int))
-    for r in rhymeschemes:
-        dist[len(r)][' '.join(r)]+=1
-
-    if not store:
-        return dist
-
-    newdist={}  #convert to normal dict with tuple keys in order to pickle
-    for l in dist:
-        newdist[l]=[]
-        for r in dist[l]:
-            newdist[l].append((r, dist[l][r]))
-    allschemes=open(storefile, 'wb')
-    pickle.dump(newdist, allschemes)
-    allschemes.close()
-
-    return dist
-
-def save_gold_std(stanzaschemes, poemschemes, poems, filename):
-    """write gold standard"""
-    o=codecs.open(filename, 'w', 'utf-8')
-    schemectr=0
-    for pi, poem in enumerate(poems):
-        for stanza in poem:
-            stanzascheme=stanzaschemes[schemectr]
-            poemscheme=poemschemes[schemectr]
-            o.write('POEM'+str(pi)+' '+unicode(' '.join(stanza))+'\n')
-            o.write(' '.join(stanzascheme)+'\n')
-            o.write(' '.join(poemscheme)+'\n\n')
-            schemectr+=1
-    o.close()
 
 def load_gold(filename):
     f=open(filename).readlines()
@@ -164,39 +32,9 @@ def load_gold(filename):
                 print "Error in gold!", i, f[i-1], f[i-2]
             stanzaschemes.append(line)
         elif i%4==2:
-            poemschemes.append(line)            
+            poemschemes.append(line)
     return [stanzaschemes, poemschemes, stanzas]
 
-def rhyming_entropy(stanzaschemes, stanzas):
-    """compute entropy of rhyming pairs"""
-    pairs=defaultdict(int)
-    totalpairs=0.0
-    for scheme, stanza in zip(stanzaschemes, stanzas):
-        for i, (schemei, wordi) in enumerate(zip(scheme, stanza)):
-            for (schemej, wordj) in zip(scheme[i+1:], stanza[i+1:]):
-                totalpairs+=1
-                if schemei==schemej:
-                    if wordi<=wordj:
-                        pairs[(wordi, wordj)]+=1
-                    else:
-                        pairs[(wordj, wordi)]+=1
-    #normalize
-    for pair in pairs:
-        pairs[pair]=pairs[pair]/totalpairs
-    #compute entropy
-    return sum(map(lambda paircount: -paircount*math.log(paircount, 2), pairs.values()))
-
-def scheme_entropy(stanzaschemes, stanzas):
-    """compute entropy of rhyme schemes"""
-    schemes=defaultdict(float)
-    for scheme, stanza in zip(stanzaschemes, stanzas):
-        schemes[tuple(scheme)]+=1.0
-    #normalize
-    total=len(stanzaschemes)
-    for scheme in schemes:
-        schemes[scheme]=schemes[scheme]/total
-    #compute entropy
-    return sum(map(lambda schemecount: -schemecount*math.log(schemecount, 2), schemes.values()))
 
 def load_result(filename):
     f=open(filename).readlines()
@@ -212,17 +50,6 @@ def load_result(filename):
             schemes.append(line)
     return [schemes, stanzas]
 
-def stats(rhymeschemes):
-    """show distribution of schemes of different lengths"""
-    dist=defaultdict(lambda : defaultdict(int))
-    for r in rhymeschemes:
-        dist[len(r)][' '.join(r)]+=1
-    for l in dist:
-        print l, 
-        distl=sorted(dist[l].items(), key=lambda x:x[1], reverse=True)
-        for (r, v) in distl:
-            print v,
-        print
 
 def compare(stanzas, gold_schemes, found_schemes):
     """get accuracy and precision/recall"""
