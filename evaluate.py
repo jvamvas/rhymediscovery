@@ -4,12 +4,13 @@
 Also contains some utilities to parse data.
 Jan 2011."""
 
-import codecs
-import math
+from __future__ import print_function
+
 import os
 import pickle
 import sys
 from collections import defaultdict
+from functools import reduce
 
 
 def get_wordset(poems):
@@ -29,7 +30,7 @@ def load_gold(filename):
             stanzas.append(line[1:])
         elif i%4==1:
             if line==[]:
-                print "Error in gold!", i, f[i-1], f[i-2]
+                print("Error in gold!", i, f[i - 1], f[i - 2])
             stanzaschemes.append(line)
         elif i%4==2:
             poemschemes.append(line)
@@ -46,7 +47,7 @@ def load_result(filename):
             stanzas.append(line[1:])
         elif i%3==1:
             if line==[]:
-                print "Error in result!", i, f[i-1], f[i-2]
+                print("Error in result!", i, f[i - 1], f[i - 2])
             schemes.append(line)
     return [schemes, stanzas]
 
@@ -58,7 +59,7 @@ def compare(stanzas, gold_schemes, found_schemes):
     for (g, f) in zip(gold_schemes, found_schemes):
         if g==f:
             correct+=1
-    print "Accuracy", correct, total, 100*correct/total
+    print("Accuracy", correct, total, 100 * correct / total)
 
     #for each word, let rhymeset[word] = set of words in rest of stanza rhyming with the word
     #precision = # correct words in rhymeset[word]/# words in proposed rhymeset[word]
@@ -92,14 +93,15 @@ def compare(stanzas, gold_schemes, found_schemes):
 
     precision=tot_p/tot_words
     recall=tot_r/tot_words
-    print "Precision", precision
-    print "Recall", recall
-    print "F-score", 2*precision*recall/(precision+recall)
-    
+    print("Precision", precision)
+    print("Recall", recall)
+    print("F-score", 2 * precision * recall / (precision + recall))
+
+
 def naive(gold_schemes):
     """find naive baseline (most common scheme of a given length)?"""
     scheme_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'allschemes.pickle')
-    dist = pickle.load(open(scheme_path))
+    dist = pickle.load(open(scheme_path, 'rb'))
     best_schemes={}
     for i in dist:
         if dist[i]==[]:
@@ -129,8 +131,8 @@ def lessnaive(gold_schemes):
 
 def main(args):
     if len(args)<1 or len(args)>2:
-        print "Usage: evaluate.py gold-file [hypothesis-output-filename]"
-        return 
+        print("Usage: evaluate.py gold-file [hypothesis-output-filename]")
+        return
     
     GOLD=args[0]    
     [gstanzaschemes, gpoemschemes, gstanzas]=load_gold(GOLD)
@@ -139,27 +141,27 @@ def main(args):
     n=len(words)
     
     #for stanzas 
-    print 'Num of stanzas: ', len(gstanzas)
-    print 'Num of lines: ', sum(map(len, gstanzas))
-    print 'Num of end word types: ', len(words)
-    print
-    
+    print('Num of stanzas: ', len(gstanzas))
+    print('Num of lines: ', sum(map(len, gstanzas)))
+    print('Num of end word types: ', len(words))
+    print()
+
     naive_schemes=naive(gstanzaschemes)
-    print "Naive baseline:"
+    print("Naive baseline:")
     compare(gstanzas, gstanzaschemes, naive_schemes)
-    print
+    print()
 
     lessnaive_schemes=lessnaive(gstanzaschemes)
-    print "Less naive baseline:"
+    print("Less naive baseline:")
     compare(gstanzas, gstanzaschemes, lessnaive_schemes)
-    print
+    print()
 
     if len(args)>1:
         HYP=args[1]
         [hstanzaschemes, hstanzas]=load_result(HYP)
-        print HYP,":"
+        print(HYP, ":")
         compare(gstanzas, gstanzaschemes, hstanzaschemes)
-        print
+        print()
 
 if __name__=='__main__':
     main(sys.argv[1:])
