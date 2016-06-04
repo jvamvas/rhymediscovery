@@ -4,10 +4,17 @@
 Sravana Reddy (sravana@cs.uchicago.edu), 2011.
 """
 
-import sys, string, random, pickle, os, re
-import numpy, math
-from collections import defaultdict
 import codecs
+import math
+import os
+import pickle
+import random
+import re
+import sys
+from collections import defaultdict
+
+import numpy
+
 
 def load_stanzas(filename):
     """Load raw stanzas from gold standard file"""

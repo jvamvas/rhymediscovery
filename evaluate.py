@@ -4,11 +4,14 @@
 Also contains some utilities to parse data.
 Jan 2011."""
 
-import os
-import sys, pickle
-import numpy, math, string
-from collections import defaultdict
 import codecs
+import math
+import os
+import pickle
+import string
+import sys
+from collections import defaultdict
+
 
 def remove_punct(s):
     """remove non-letter chars"""
