@@ -3,11 +3,11 @@ from unittest import TestCase
 
 import sys
 
-import findschemes, evaluate
+import findschemes
+import evaluate
 
 
 class BaseTestCase(TestCase):
-
     def setUp(self):
         self.endings_file = 'sample.pgold'
         self.init_type = 'o'
@@ -15,7 +15,6 @@ class BaseTestCase(TestCase):
 
 
 class FindschemesTestCase(BaseTestCase):
-
     def setUp(self):
         super(FindschemesTestCase, self).setUp()
 
@@ -69,7 +68,6 @@ schwoll fuß sehnsuchtsvoll gruß ihm geschehn hin gesehn
 
 
 class EvaluateTestCase(BaseTestCase):
-
     def setUp(self):
         super(EvaluateTestCase, self).setUp()
         findscheme_args = [
