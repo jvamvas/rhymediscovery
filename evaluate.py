@@ -116,7 +116,7 @@ def naive(gold_schemes):
     return naive_schemes
 
 
-def lessnaive(gold_schemes):
+def less_naive(gold_schemes):
     """find 'less naive' baseline (most common scheme of a given length in subcorpus)"""
     best_schemes = defaultdict(lambda: defaultdict(int))
     for g in gold_schemes:
@@ -155,9 +155,9 @@ def main(args):
     compare(gstanzas, gstanzaschemes, naive_schemes)
     print()
 
-    lessnaive_schemes = lessnaive(gstanzaschemes)
+    less_naive_schemes = less_naive(gstanzaschemes)
     print("Less naive baseline:")
-    compare(gstanzas, gstanzaschemes, lessnaive_schemes)
+    compare(gstanzas, gstanzaschemes, less_naive_schemes)
     print()
 
     if len(args) > 1:

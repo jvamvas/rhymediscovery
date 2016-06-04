@@ -114,7 +114,7 @@ def read_celex():
     return d
 
 
-def isRhyme(d, w1, w2):
+def is_rhyme(d, w1, w2):
     """check if words rhyme"""
     for p1 in d[w1]:
         # extract only "rhyming portion"
@@ -151,7 +151,7 @@ def init_perfect_ttable(words):
             if c < r:
                 t_table[r, c] = t_table[c, r]
             elif w in d and v in d:
-                t_table[r, c] = int(isRhyme(d, w, v)) + 0.001  # for backoff
+                t_table[r, c] = int(is_rhyme(d, w, v)) + 0.001  # for backoff
             else:
                 t_table[r, c] = random.random()
         t_table[r, n] = random.random()  # no estimate for P(r|no history)
