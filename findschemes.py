@@ -21,7 +21,8 @@ def load_stanzas(filename):
 
 def load_schemes(schemefile):
     """load rhyme schemes from pickled file"""
-    schemes=pickle.load(open(schemefile))
+    scheme_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), schemefile)
+    schemes=pickle.load(open(scheme_path))
     for i in schemes:
         schemes[i]=map(lambda x:map(int, x[0].split()), schemes[i])  #remove freq and convert to list of integers
     return schemes
@@ -170,8 +171,6 @@ def e_unnorm_post(t_table, words, stanzas, schemes, rprobs):
     for i, stanza in enumerate(stanzas):
         if i==numstanzas/2:
            print i
-        elif i%10==0:
-            sys.stdout.write('.')
         stanzaprobs=[]
         myschemes=schemes[len(stanza)]
         for myscheme in myschemes:
@@ -308,9 +307,7 @@ def main(args):
         print "Usage: findschemes.py gold-data init-type output-filename"
         print "where init-type may be u for uniform, o for orthographic"
         return
-    
-    sys.stdout = os.fdopen(sys.stdout.fileno(), 'w', 0)  #to flush buffer
-    
+
     #load stanzas and schemes
     INFILE=args[0]
     stanzas=load_stanzas(INFILE) 

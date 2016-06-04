@@ -4,6 +4,7 @@
 Also contains some utilities to parse data.
 Jan 2011."""
 
+import os
 import sys, pickle
 import numpy, math, string
 from collections import defaultdict
@@ -267,7 +268,8 @@ def compare(stanzas, gold_schemes, found_schemes):
     
 def naive(gold_schemes):
     """find naive baseline (most common scheme of a given length)?"""
-    dist = pickle.load(open('allschemes.pickle'))
+    scheme_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'allschemes.pickle')
+    dist = pickle.load(open(scheme_path))
     best_schemes={}
     for i in dist:
         if dist[i]==[]:
