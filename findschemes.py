@@ -7,9 +7,9 @@ Sravana Reddy (sravana@cs.uchicago.edu), 2011.
 from __future__ import print_function
 
 import argparse
+import json
 import math
 import os
-import pickle
 import random
 import re
 import sys
@@ -31,13 +31,17 @@ def load_stanzas(stanzas_file):
 
 
 def load_schemes(schemefile):
-    """load rhyme schemes from pickled file"""
+    """load rhyme schemes from json file"""
     scheme_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), schemefile)
-    schemes = pickle.load(open(scheme_path, 'rb'))
+    with open(scheme_path, 'r') as f:
+        schemes = json.loads(f.read())
+    int_schemes = {}
     for i in schemes:
-        schemes[i] = list(
-            map(lambda x: list(map(int, x[0].split())), schemes[i]))  # remove freq and convert to list of integers
-    return schemes
+        key = int(i)
+        # Remove freq and convert to list of integers
+        value = list(map(lambda x: list(map(int, x[0].split())), schemes[i]))
+        int_schemes[key] = value
+    return int_schemes
 
 
 def get_wordset(stanzas):
@@ -336,7 +340,7 @@ def main(args_list):
 
     # load stanzas and schemes
     stanzas = load_stanzas(args.infile)
-    schemes = load_schemes('allschemes.pickle')
+    schemes = load_schemes('allschemes.json')
     print("Loaded files")
 
     # get list of words

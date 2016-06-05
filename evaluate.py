@@ -7,8 +7,8 @@ Jan 2011."""
 from __future__ import print_function
 
 import argparse
+import json
 import os
-import pickle
 import sys
 from collections import defaultdict
 from functools import reduce
@@ -102,13 +102,14 @@ def compare(stanzas, gold_schemes, found_schemes):
 
 def naive(gold_schemes):
     """find naive baseline (most common scheme of a given length)?"""
-    scheme_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'allschemes.pickle')
-    dist = pickle.load(open(scheme_path, 'rb'))
+    scheme_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'allschemes.json')
+    with open(scheme_path, 'r') as f:
+        dist = json.loads(f.read())
     best_schemes = {}
     for i in dist:
         if dist[i] == []:
             continue
-        best_schemes[i] = (max(dist[i], key=lambda x: x[1])[0]).split()
+        best_schemes[int(i)] = (max(dist[i], key=lambda x: x[1])[0]).split()
 
     naive_schemes = []
     for g in gold_schemes:
