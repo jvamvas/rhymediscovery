@@ -6,7 +6,7 @@ Sravana Reddy (sravana@cs.uchicago.edu), 2011.
 
 from __future__ import print_function
 
-import codecs
+import argparse
 import math
 import os
 import pickle
@@ -19,9 +19,9 @@ from functools import reduce
 import numpy
 
 
-def load_stanzas(filename):
+def load_stanzas(stanzas_file):
     """Load raw stanzas from gold standard file"""
-    f = codecs.open(filename, 'r', 'utf8').readlines()
+    f = stanzas_file.readlines()
     stanzas = []
     for i, line in enumerate(f):
         line = line.split()
@@ -306,13 +306,12 @@ def iterate(t_table, words, stanzas, schemes, rprobs, maxsteps):
 
 def show_rhymes(probs, stanzas, schemes, outfile):
     """write rhyme schemes at convergence"""
-    o = codecs.open(outfile, 'w', 'utf8')
     for stanza, stanzaprobs in zip(stanzas, probs):
         # scheme with highest probability
         bestscheme = schemes[len(stanza)][numpy.argmax(numpy.array(stanzaprobs))]
-        o.write(' '.join(stanza) + '\n')
-        o.write(' '.join(map(str, bestscheme)) + '\n\n')
-    o.close()
+        outfile.write(' '.join(stanza) + '\n')
+        outfile.write(' '.join(map(str, bestscheme)) + '\n\n')
+    outfile.close()
 
 
 def init_uniform_r(schemes):
@@ -328,15 +327,15 @@ def init_uniform_r(schemes):
     return rprobs
 
 
-def main(args):
-    if len(args) != 3:
-        print("Usage: findschemes.py gold-data init-type output-filename")
-        print("where init-type may be u for uniform, o for orthographic")
-        return
+def main(args_list):
+    parser = argparse.ArgumentParser(description='Discover schemes of given stanza file')
+    parser.add_argument('infile', type=argparse.FileType('r'))
+    parser.add_argument('init_type', choices=('u', 'o', 'p'))
+    parser.add_argument('outfile', type=argparse.FileType('w'))
+    args = parser.parse_args(args_list)
 
     # load stanzas and schemes
-    INFILE = args[0]
-    stanzas = load_stanzas(INFILE)
+    stanzas = load_stanzas(args.infile)
     schemes = load_schemes('allschemes.pickle')
     print("Loaded files")
 
@@ -346,24 +345,24 @@ def main(args):
     # initialize p(r)
     rprobs = init_uniform_r(schemes)
 
-    if args[1][0] == 'u':  # uniform init
+    if args.init_type == 'u':  # uniform init
         t_table = init_uniform_ttable(words)
 
         print("Initialized,", len(words), "words")
         [final_t_table, final_probs, data_prob] = iterate(t_table, words, stanzas, schemes, rprobs, 100)
 
-    elif args[1][0] == 'o':  # init based on orthographic word sim
+    elif args.init_type == 'o':  # init based on orthographic word sim
         t_table = init_basicortho_ttable(words)
         print("Initialized,", len(words), "words")
         [final_t_table, final_probs, data_prob] = iterate(t_table, words, stanzas, schemes, rprobs, 100)
 
-    elif args[1][0] == 'p':  # init based on rhyming definition
+    elif args.init_type == 'p':  # init based on rhyming definition
         t_table = init_perfect_ttable(words)
         print("Initialized,", len(words), "words")
         [final_t_table, final_probs, data_prob] = iterate(t_table, words, stanzas, schemes, rprobs, 100)
 
     # write rhyme schemes
-    show_rhymes(final_probs, stanzas, schemes, args[2])
+    show_rhymes(final_probs, stanzas, schemes, args.outfile)
     print("Wrote result")
 
 

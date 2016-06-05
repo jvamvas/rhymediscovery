@@ -6,6 +6,7 @@ Jan 2011."""
 
 from __future__ import print_function
 
+import argparse
 import os
 import pickle
 import sys
@@ -19,35 +20,34 @@ def get_wordset(poems):
     return words
 
 
-def load_gold(filename):
-    f = open(filename).readlines()
+def load_gold(gold_file):
+    lines = gold_file.readlines()
     stanzas = []
     stanzaschemes = []
     poemschemes = []
-    for i, line in enumerate(f):
+    for i, line in enumerate(lines):
         line = line.split()
         if i % 4 == 0:
             stanzas.append(line[1:])
         elif i % 4 == 1:
             if line == []:
-                print("Error in gold!", i, f[i - 1], f[i - 2])
+                print("Error in gold!", i, lines[i - 1], lines[i - 2])
             stanzaschemes.append(line)
         elif i % 4 == 2:
             poemschemes.append(line)
     return [stanzaschemes, poemschemes, stanzas]
 
 
-def load_result(filename):
-    f = open(filename).readlines()
+def load_result(result_lines):
     stanzas = []
     schemes = []
-    for i, line in enumerate(f):
+    for i, line in enumerate(result_lines):
         line = line.split()
         if i % 3 == 0:
             stanzas.append(line[1:])
         elif i % 3 == 1:
             if line == []:
-                print("Error in result!", i, f[i - 1], f[i - 2])
+                print("Error in result!", i, result_lines[i - 1], result_lines[i - 2])
             schemes.append(line)
     return [schemes, stanzas]
 
@@ -133,13 +133,13 @@ def less_naive(gold_schemes):
     return naive_schemes
 
 
-def main(args):
-    if len(args) < 1 or len(args) > 2:
-        print("Usage: evaluate.py gold-file [hypothesis-output-filename]")
-        return
+def main(args_list):
+    parser = argparse.ArgumentParser(description='Evaluate findschemes output')
+    parser.add_argument('gold_file', type=argparse.FileType('r'))
+    parser.add_argument('hypothesis_file', nargs='?', type=argparse.FileType('r'), default=sys.stdin)
+    args = parser.parse_args(args_list)
 
-    GOLD = args[0]
-    [gstanzaschemes, gpoemschemes, gstanzas] = load_gold(GOLD)
+    [gstanzaschemes, gpoemschemes, gstanzas] = load_gold(args.gold_file)
 
     words = get_wordset(gstanzas)
     n = len(words)
@@ -160,10 +160,10 @@ def main(args):
     compare(gstanzas, gstanzaschemes, less_naive_schemes)
     print()
 
-    if len(args) > 1:
-        HYP = args[1]
-        [hstanzaschemes, hstanzas] = load_result(HYP)
-        print(HYP, ":")
+    hypothesis_lines = args.hypothesis_file.readlines()
+    if hypothesis_lines:
+        [hstanzaschemes, hstanzas] = load_result(hypothesis_lines)
+        print(args.hypothesis_file.name, ":")
         compare(gstanzas, gstanzaschemes, hstanzaschemes)
         print()
 
