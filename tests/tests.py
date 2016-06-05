@@ -3,6 +3,8 @@ from unittest import TestCase
 
 import sys
 
+import numpy
+
 import findschemes
 import evaluate
 
@@ -65,6 +67,23 @@ schwoll fuß sehnsuchtsvoll gruß ihm geschehn hin gesehn
 1 2 1 2 3 4 3 4
 
 """)
+
+    def test_get_wordset(self):
+        stanzas = [['word1a', 'word1b'], ['word2a', 'word2b']]
+        words = ['word1a', 'word1b', 'word2a', 'word2b']
+        self.assertEqual(findschemes.get_wordset(stanzas), words)
+
+    def test_init_uniform_table(self):
+        words = ['word1', 'word2']
+        t_table = numpy.array([[0.5, 0.5, 0.5], [0.5, 0.5, 0.5]])
+        numpy.testing.assert_array_equal(findschemes.init_uniform_ttable(words), t_table)
+
+    def test_get_rhymelists(self):
+        stanza = ['w1', 'w2', 'w3', 'w4']
+        scheme1 = [1, 2, 1, 2]
+        self.assertEqual(findschemes.get_rhymelists(stanza, scheme1), [['w1', 'w3'], ['w2', 'w4']])
+        scheme2 = [1, 1, 2, 2]
+        self.assertEqual(findschemes.get_rhymelists(stanza, scheme2), [['w1', 'w2'], ['w3', 'w4']])
 
 
 class EvaluateTestCase(BaseTestCase):

@@ -4,7 +4,7 @@
 Sravana Reddy (sravana@cs.uchicago.edu), 2011.
 """
 
-from __future__ import print_function
+from __future__ import division, print_function
 
 import argparse
 import json
@@ -61,12 +61,7 @@ def get_rhymelists(stanza, scheme):
 def init_uniform_ttable(words):
     """initialize (normalized) theta uniformly"""
     n = len(words)
-    t_table = numpy.zeros((n, n + 1))
-    uni_prob = 1 / float(n)
-    for c in range(n + 1):
-        for r in range(n):
-            t_table[r, c] = uni_prob
-    return t_table
+    return numpy.ones((n, n + 1)) * (1 / n)
 
 
 def basic_word_sim(word1, word2):
@@ -96,7 +91,7 @@ def init_basicortho_ttable(words):
 
     # normalize
     for c in range(n + 1):
-        tot = float(sum(t_table[:, c]))
+        tot = sum(t_table[:, c])
         for r in range(n):
             t_table[r, c] = t_table[r, c] / tot
 
@@ -164,7 +159,7 @@ def init_perfect_ttable(words):
 
     # normalize
     for c in range(n + 1):
-        tot = float(sum(t_table[:, c]))
+        tot = sum(t_table[:, c])
         for r in range(n):
             t_table[r, c] = t_table[r, c] / tot
 
@@ -176,7 +171,6 @@ def post_prob_scheme(t_table, words, stanza, myscheme):
     myprob = 1.0
     n = len(words)
     rhymelists = get_rhymelists(stanza, myscheme)
-    plen = len(stanza)
     for rhymelist in rhymelists:
         for i, w in enumerate(rhymelist):
             r = words.index(w)
@@ -244,7 +238,10 @@ def m_frac_counts(words, stanzas, schemes, normprobs):
 
 
 def m_norm_frac(tc_table, n, rprobs):
-    """normalize counts to get conditional probs"""
+    """
+    Normalize counts to get conditional probs
+    :param n: Number of words
+    """
     t_table = numpy.zeros((n, n + 1))
 
     for c in range(n + 1):
@@ -256,16 +253,19 @@ def m_norm_frac(tc_table, n, rprobs):
 
     totrprob = sum(rprobs.values())
     for scheme in rprobs:
-        rprobs[scheme] = rprobs[scheme] / totrprob
+        rprobs[scheme] /= totrprob
 
     return [t_table, rprobs]
 
 
 def iterate(t_table, words, stanzas, schemes, rprobs, maxsteps):
     """iterate steps 2-5 until convergence, return final t_table"""
-    numstanzas = float(len(stanzas))
     data_prob = -10 ** 10
-    epsilon = .1
+    epsilon = 0.1
+
+    probs = None
+    ctr = 0
+    old_data_prob = None
     for ctr in range(maxsteps):
         old_data_prob = data_prob
 
@@ -275,8 +275,12 @@ def iterate(t_table, words, stanzas, schemes, rprobs, maxsteps):
         # estimate total probability
         allschemeprobs = map(sum, probs)
 
-        if 0.0 in allschemeprobs:  # this may happen for very large data on large stanzas, small hack to prevent
-            underflows = filter(lambda x: x[2] == 0.0, zip(range(len(stanzas)), stanzas, allschemeprobs))
+        if 0.0 in allschemeprobs:
+            # This may happen for very large data on large stanzas, small hack to prevent
+            underflows = filter(
+                lambda x: x[2] == 0.0,
+                zip(range(len(stanzas)), stanzas, allschemeprobs)
+            )
             for underflow in underflows:
                 if len(probs[underflow[0]]) == 1:
                     probs[underflow[0]][0] = 1e-300
@@ -305,7 +309,7 @@ def iterate(t_table, words, stanzas, schemes, rprobs, maxsteps):
     if ctr == maxsteps - 1 and data_prob - old_data_prob >= epsilon:
         print("Warning: EM did not converge")
 
-    return [t_table, probs, data_prob]
+    return probs, data_prob
 
 
 def show_rhymes(probs, stanzas, schemes, outfile):
@@ -321,11 +325,11 @@ def show_rhymes(probs, stanzas, schemes, outfile):
 def init_uniform_r(schemes):
     """assign equal prob to every scheme"""
     rprobs = {}
-    numschemes = float(sum(map(len, schemes.values())))
+    numschemes = sum(map(len, schemes.values()))
     uni_prob = 1 / numschemes
 
-    for i in schemes:
-        for scheme in schemes[i]:
+    for scheme_list in schemes.values():
+        for scheme in scheme_list:
             rprobs[tuple(scheme)] = uni_prob
 
     return rprobs
@@ -349,21 +353,16 @@ def main(args_list):
     # initialize p(r)
     rprobs = init_uniform_r(schemes)
 
+    t_table = None
     if args.init_type == 'u':  # uniform init
         t_table = init_uniform_ttable(words)
-
-        print("Initialized,", len(words), "words")
-        [final_t_table, final_probs, data_prob] = iterate(t_table, words, stanzas, schemes, rprobs, 100)
-
     elif args.init_type == 'o':  # init based on orthographic word sim
         t_table = init_basicortho_ttable(words)
-        print("Initialized,", len(words), "words")
-        [final_t_table, final_probs, data_prob] = iterate(t_table, words, stanzas, schemes, rprobs, 100)
-
     elif args.init_type == 'p':  # init based on rhyming definition
         t_table = init_perfect_ttable(words)
-        print("Initialized,", len(words), "words")
-        [final_t_table, final_probs, data_prob] = iterate(t_table, words, stanzas, schemes, rprobs, 100)
+
+    print("Initialized,", len(words), "words")
+    final_probs, data_prob = iterate(t_table, words, stanzas, schemes, rprobs, 100)
 
     # write rhyme schemes
     show_rhymes(final_probs, stanzas, schemes, args.outfile)
