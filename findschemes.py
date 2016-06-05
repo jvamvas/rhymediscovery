@@ -140,7 +140,7 @@ def e_norm_post(probs):
     for stanzaprobs in probs:
         tot = sum(stanzaprobs)
         if tot > 0:
-            normstanzaprobs = map(lambda myprob: myprob / tot, stanzaprobs)
+            normstanzaprobs = list(map(lambda myprob: myprob / tot, stanzaprobs))
         else:
             normstanzaprobs = stanzaprobs[:]
         normprobs.append(normstanzaprobs)
@@ -206,7 +206,7 @@ def iterate(t_table, words, stanzas, schemes, rprobs, maxsteps):
         probs = e_unnorm_post(t_table, words, stanzas, schemes, rprobs)
 
         # estimate total probability
-        allschemeprobs = map(sum, probs)
+        allschemeprobs = list(map(sum, probs))
 
         if 0.0 in allschemeprobs:
             # This may happen for very large data on large stanzas, small hack to prevent
@@ -222,7 +222,7 @@ def iterate(t_table, words, stanzas, schemes, rprobs, maxsteps):
                 else:
                     print("Problem!", underflow, probs[underflow[0]])
 
-        allschemeprobs = map(lambda x: math.log(x, 2), allschemeprobs)
+        allschemeprobs = list(map(lambda x: math.log(x, 2), allschemeprobs))
         data_prob = sum(allschemeprobs)
 
         probs = e_norm_post(probs)  # normalize
