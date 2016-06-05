@@ -4,7 +4,7 @@
 Sravana Reddy (sravana@cs.uchicago.edu), 2011.
 """
 
-from __future__ import division, print_function
+from __future__ import division, print_function, unicode_literals
 
 import argparse
 import json
@@ -56,7 +56,7 @@ def get_rhymelists(stanza, scheme):
     rhymelists = defaultdict(list)
     for stanzaword, schemeword in zip(stanza, scheme):
         rhymelists[schemeword].append(stanzaword)
-    return rhymelists.values()
+    return list(rhymelists.values())
 
 
 def init_uniform_ttable(words):
@@ -250,8 +250,8 @@ def show_rhymes(probs, stanzas, schemes, outfile):
     for stanza, stanzaprobs in zip(stanzas, probs):
         # scheme with highest probability
         bestscheme = schemes[len(stanza)][numpy.argmax(numpy.array(stanzaprobs))]
-        outfile.write(' '.join(stanza) + '\n')
-        outfile.write(' '.join(map(str, bestscheme)) + '\n\n')
+        outfile.write(str(' ').join(stanza) + str('\n'))
+        outfile.write(str(' ').join(map(str, bestscheme)) + str('\n\n'))
     outfile.close()
 
 

@@ -4,7 +4,7 @@
 Also contains some utilities to parse data.
 Jan 2011."""
 
-from __future__ import print_function
+from __future__ import print_function, unicode_literals
 
 import argparse
 import json
@@ -30,7 +30,7 @@ def load_gold(gold_file):
         if i % 4 == 0:
             stanzas.append(line[1:])
         elif i % 4 == 1:
-            if line == []:
+            if not line:
                 print("Error in gold!", i, lines[i - 1], lines[i - 2])
             stanzaschemes.append(line)
         elif i % 4 == 2:
@@ -46,7 +46,7 @@ def load_result(result_lines):
         if i % 3 == 0:
             stanzas.append(line[1:])
         elif i % 3 == 1:
-            if line == []:
+            if not line:
                 print("Error in result!", i, result_lines[i - 1], result_lines[i - 2])
             schemes.append(line)
     return [schemes, stanzas]
@@ -107,7 +107,7 @@ def naive(gold_schemes):
         dist = json.loads(f.read())
     best_schemes = {}
     for i in dist:
-        if dist[i] == []:
+        if not dist[i]:
             continue
         best_schemes[int(i)] = (max(dist[i], key=lambda x: x[1])[0]).split()
 

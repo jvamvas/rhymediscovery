@@ -1,7 +1,8 @@
-import random
-from collections import defaultdict
+from __future__ import unicode_literals
 
+import random
 import re
+from collections import defaultdict
 
 import numpy
 
