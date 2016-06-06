@@ -14,13 +14,15 @@ class BaseTestCase(TestCase):
         self.endings_file = 'sample.pgold'
         self.init_type = 'o'
         self.output_file = 'out.txt'
+        with open(self.endings_file, 'r') as f:
+            self.stanzas = findschemes.load_stanzas(f)
 
 
 class FindschemesTestCase(BaseTestCase):
     def setUp(self):
         super(FindschemesTestCase, self).setUp()
 
-    def test_findschemes(self):
+    def test_main(self):
         args = [
             self.endings_file,
             self.init_type,
@@ -44,29 +46,22 @@ schwoll fuß sehnsuchtsvoll gruß ihm geschehn hin gesehn
 
 """)
 
+    def test_basicortho_findschemes(self):
+        results = findschemes.find_schemes(self.stanzas, findschemes.init_basicortho_ttable)
+        self.assertEqual(results[0], (
+            ['schwoll', 'daran', 'ruhevoll', 'hinan', 'lauscht', 'empor', 'rauscht', 'hervor'],
+            [1, 2, 1, 2, 3, 4, 3, 4],
+        ))
+        for stanza, scheme in results:
+            self.assertEqual(scheme, [1, 2, 1, 2, 3, 4, 3, 4])
+
     def test_uniform_init_findschemes(self):
-        args = [
-            self.endings_file,
-            'u',
-            self.output_file,
-        ]
-        findschemes.main(args)
-        with open(self.output_file, 'r') as f:
-            output = f.read()
-            self.assertEqual(output, """\
-schwoll daran ruhevoll hinan lauscht empor rauscht hervor
-1 2 1 2 3 4 3 4
-
-ihm brut menschenlist todesglut ist grund bist gesund
-1 2 1 2 3 4 3 4
-
-nicht meer gesicht her nicht blau angesicht tau
-1 2 2 1 3 4 3 4
-
-schwoll fuß sehnsuchtsvoll gruß ihm geschehn hin gesehn
-1 2 1 2 3 4 3 4
-
-""")
+        results = findschemes.find_schemes(self.stanzas, findschemes.init_uniform_ttable)
+        self.assertEqual(results[0], (
+            ['schwoll', 'daran', 'ruhevoll', 'hinan', 'lauscht', 'empor', 'rauscht', 'hervor'],
+            [1, 2, 1, 2, 3, 4, 3, 4],
+        ))
+        self.assertNotEqual(results[2][1], [1, 2, 1, 2, 3, 4, 3, 4], msg='Uniform misclassifies third stanza')
 
     def test_get_wordset(self):
         stanzas = [['word1a', 'word1b'], ['word2a', 'word2b']]

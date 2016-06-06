@@ -245,16 +245,6 @@ def iterate(t_table, words, stanzas, schemes, rprobs, maxsteps):
     return probs, data_prob
 
 
-def show_rhymes(probs, stanzas, schemes, outfile):
-    """write rhyme schemes at convergence"""
-    for stanza, stanzaprobs in zip(stanzas, probs):
-        # scheme with highest probability
-        bestscheme = schemes[len(stanza)][numpy.argmax(numpy.array(stanzaprobs))]
-        outfile.write(str(' ').join(stanza) + str('\n'))
-        outfile.write(str(' ').join(map(str, bestscheme)) + str('\n\n'))
-    outfile.close()
-
-
 def init_uniform_r(schemes):
     """assign equal prob to every scheme"""
     rprobs = {}
@@ -268,37 +258,57 @@ def init_uniform_r(schemes):
     return rprobs
 
 
-def main(args_list):
-    parser = argparse.ArgumentParser(description='Discover schemes of given stanza file')
-    parser.add_argument('infile', type=argparse.FileType('r'))
-    parser.add_argument('init_type', choices=('u', 'o', 'p'))
-    parser.add_argument('outfile', type=argparse.FileType('w'))
-    args = parser.parse_args(args_list)
+def get_results(probs, stanzas, schemes):
+    results = []
+    for stanza, stanzaprobs in zip(stanzas, probs):
+        bestscheme = schemes[len(stanza)][numpy.argmax(numpy.array(stanzaprobs))]
+        results.append((stanza, bestscheme))
+    return results
 
-    # load stanzas and schemes
-    stanzas = load_stanzas(args.infile)
+
+def print_results(results, outfile):
+    """write rhyme schemes at convergence"""
+    for stanza, scheme in results:
+        # scheme with highest probability
+        outfile.write(str(' ').join(stanza) + str('\n'))
+        outfile.write(str(' ').join(map(str, scheme)) + str('\n\n'))
+    outfile.close()
+
+
+def find_schemes(stanzas, t_table_init_function=init_uniform_ttable):
     schemes = load_schemes('allschemes.json')
     print("Loaded files")
-
-    # get list of words
     words = get_wordset(stanzas)
-
-    # initialize p(r)
+    # Initialize p(r)
     rprobs = init_uniform_r(schemes)
-
-    t_table = None
-    if args.init_type == 'u':  # uniform init
-        t_table = init_uniform_ttable(words)
-    elif args.init_type == 'o':  # init based on orthographic word sim
-        t_table = init_basicortho_ttable(words)
-    elif args.init_type == 'p':  # init based on rhyming definition
-        t_table = celex.init_perfect_ttable(words)
-
+    t_table = t_table_init_function(words)
     print("Initialized,", len(words), "words")
     final_probs, data_prob = iterate(t_table, words, stanzas, schemes, rprobs, 100)
 
-    # write rhyme schemes
-    show_rhymes(final_probs, stanzas, schemes, args.outfile)
+    results = get_results(final_probs, stanzas, schemes)
+    return results
+
+
+def main(args_list):
+    parser = argparse.ArgumentParser(description='Discover schemes of given stanza file')
+    parser.add_argument('infile', type=argparse.FileType('r'))
+    parser.add_argument('init_type', choices=('u', 'o', 'p'), default='u')
+    parser.add_argument('outfile', type=argparse.FileType('w'))
+    args = parser.parse_args(args_list)
+
+    stanzas = load_stanzas(args.infile)
+
+    init_function = None
+    if args.init_type == 'u':  # uniform init
+        init_function = init_uniform_ttable
+    elif args.init_type == 'o':  # init based on orthographic word sim
+        init_function = init_basicortho_ttable
+    elif args.init_type == 'p':  # init based on rhyming definition
+        init_function = celex.init_perfect_ttable
+
+    results = find_schemes(stanzas, init_function)
+
+    print_results(results, args.outfile)
     print("Wrote result")
 
 
