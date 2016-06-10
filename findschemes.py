@@ -9,7 +9,6 @@ from __future__ import division, print_function, unicode_literals
 import argparse
 import json
 import logging
-import math
 import os
 import random
 import sys
@@ -121,14 +120,14 @@ def post_prob_scheme(t_table, words, stanza, scheme):
     Compute posterior probability of a scheme for a stanza, with probability of every word in rhymelist
     rhyming with all the ones before it
     """
-    myprob = 1.0
+    myprob = 1
     n = len(words)
     rhymelists = get_rhymelists(stanza, scheme)
     for rhymelist in rhymelists:
         for i, w in enumerate(rhymelist):
             r = words.index(w)
             if i == 0:  # first word, use P(w|x)
-                myprob = myprob * t_table[r, n]
+                myprob = t_table[r, n]
             else:
                 for v in rhymelist[:i]:  # history
                     c = words.index(v)
@@ -142,71 +141,58 @@ def e_unnorm_post(t_table, words, stanzas, schemes, rprobs):
     """
     Expectation step: Compute posterior probability of schemes of appropriate length for each stanza
     """
-    probs = []
+    probs = numpy.zeros((len(stanzas), schemes.num_schemes))
     for i, stanza in enumerate(stanzas):
-        stanzaprobs = []
         scheme_indices = schemes.get_schemes_for_len(len(stanza))
         for scheme_index in scheme_indices:
             scheme = schemes.scheme_list[scheme_index]
-            stanzaprobs.append(rprobs[scheme_index] * post_prob_scheme(t_table, words, stanza, scheme))
-        probs.append(stanzaprobs)
+            # TODO Multiply with rprobs column-wise
+            posterior_prob = rprobs[scheme_index] * post_prob_scheme(t_table, words, stanza, scheme)
+            probs[i, scheme_index] = posterior_prob
     return probs
 
 
 def e_norm_post(probs):
-    """normalize posterior probs"""
-    normprobs = []
-    for stanzaprobs in probs:
-        tot = sum(stanzaprobs)
-        if tot > 0:
-            normstanzaprobs = list(map(lambda myprob: myprob / tot, stanzaprobs))
-        else:
-            normstanzaprobs = stanzaprobs[:]
-        normprobs.append(normstanzaprobs)
-    return normprobs
+    """
+    Normalize posterior probabilities
+    """
+    scheme_sums = numpy.sum(probs, axis=1)
+    for i, scheme_sum in enumerate(list(scheme_sums)):
+        if scheme_sum > 0:
+            probs[i, :] /= scheme_sum
+    return probs
 
 
-def m_frac_counts(words, stanzas, schemes, normprobs):
-    """
-    Maximization step: Find fractional pseudocounts
-    """
+def maximization_step(words, stanzas, schemes, probs):
     n = len(words)
-    tc_table = numpy.zeros((n, n + 1))
+    t_table = numpy.zeros((n, n + 1))
     rprobs = numpy.ones(schemes.num_schemes)
-    for stanza, stanzaprobs in zip(stanzas, normprobs):
+    for i, stanza in enumerate(stanzas):
         scheme_indices = schemes.get_schemes_for_len(len(stanza))
-        for scheme_index, myprob in zip(scheme_indices, stanzaprobs):
+        for scheme_index in scheme_indices:
+            myprob = probs[i, scheme_index]
             rprobs[scheme_index] += myprob
             scheme = schemes.scheme_list[scheme_index]
             rhymelists = get_rhymelists(stanza, scheme)
             for rhymelist in rhymelists:
-                for i, w in enumerate(rhymelist):
+                for j, w in enumerate(rhymelist):
                     r = words.index(w)
-                    tc_table[r, n] += myprob
-                    for v in rhymelist[:i] + rhymelist[i + 1:]:
+                    t_table[r, n] += myprob
+                    for v in rhymelist[:j] + rhymelist[j + 1:]:
                         c = words.index(v)
-                        tc_table[r, c] += myprob
+                        t_table[r, c] += myprob
 
-    return [tc_table, rprobs]
-
-
-def m_norm_frac(tc_table, n, rprobs):
-    """
-    Normalize counts to get conditional probs
-    :param n: Number of words
-    """
-    t_table = numpy.zeros((n, n + 1))
-
+    # Normalize t_table
     for c in range(n + 1):
-        tot = sum(tc_table[:, c])
+        tot = numpy.sum(t_table[:, c])
         if tot == 0:
             continue
-        for r in range(n):
-            t_table[r, c] = tc_table[r, c] / tot
+        t_table[:, c] /= tot
 
+    # Normalize rprobs
     totrprob = numpy.sum(rprobs)
     rprobs /= totrprob
-    return [t_table, rprobs]
+    return t_table, rprobs
 
 
 def iterate(t_table, words, stanzas, schemes, rprobs, maxsteps):
@@ -224,7 +210,7 @@ def iterate(t_table, words, stanzas, schemes, rprobs, maxsteps):
         probs = e_unnorm_post(t_table, words, stanzas, schemes, rprobs)
 
         # estimate total probability
-        allschemeprobs = list(map(sum, probs))
+        allschemeprobs = numpy.sum(probs, axis=1)
 
         if 0.0 in allschemeprobs:
             # This may happen for very large data on large stanzas, small hack to prevent
@@ -240,16 +226,15 @@ def iterate(t_table, words, stanzas, schemes, rprobs, maxsteps):
                 else:
                     logging.warning("Problem! {} {}".format(underflow, probs[underflow[0]]))
 
-        allschemeprobs = list(map(lambda x: math.log(x, 2), allschemeprobs))
-        data_prob = sum(allschemeprobs)
+        allschemeprobs = numpy.log2(allschemeprobs)
 
         probs = e_norm_post(probs)  # normalize
 
         # M-step
-        t_table, rprobs = m_frac_counts(words, stanzas, schemes, probs)
-        t_table, rprobs = m_norm_frac(t_table, len(words), rprobs)
+        t_table, rprobs = maximization_step(words, stanzas, schemes, probs)
 
         # check convergence
+        data_prob = numpy.sum(allschemeprobs)
         if ctr > 0 and data_prob - old_data_prob < epsilon:
             break
 
@@ -269,10 +254,8 @@ def init_uniform_r(schemes):
 
 def get_results(probs, stanzas, schemes):
     results = []
-    for stanza, stanzaprobs in zip(stanzas, probs):
-        scheme_indices = schemes.get_schemes_for_len(len(stanza))
-        best_scheme_index = scheme_indices[numpy.argmax(numpy.array(stanzaprobs))]
-        best_scheme = schemes.scheme_list[best_scheme_index]
+    for i, stanza in enumerate(stanzas):
+        best_scheme = schemes.scheme_list[numpy.argmax(probs[i, :])]
         results.append((stanza, best_scheme))
     return results
 
