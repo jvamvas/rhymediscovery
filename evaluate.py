@@ -4,11 +4,10 @@
 Also contains some utilities to parse data.
 Jan 2011."""
 
-from __future__ import print_function, unicode_literals
+from __future__ import division, print_function, unicode_literals
 
 import argparse
 import json
-import logging
 import os
 import sys
 from collections import defaultdict
@@ -151,7 +150,8 @@ def compare(stanzas, gold_schemes, found_schemes):
     recall = tot_r / tot_words
     result.precision = precision
     result.recall = recall
-    result.f_score = 2 * precision * recall / (precision + recall)
+    if precision + recall > 0:
+        result.f_score = 2 * precision * recall / (precision + recall)
     return result
 
 
@@ -161,10 +161,10 @@ def naive(gold_schemes):
     with open(scheme_path, 'r') as f:
         dist = json.loads(f.read())
     best_schemes = {}
-    for i in dist:
+    for i in dist.keys():
         if not dist[i]:
             continue
-        best_schemes[int(i)] = [int(i) for i in (max(dist[i], key=lambda x: x[1])[0]).split()]
+        best_schemes[int(i)] = [int(j) for j in (max(dist[i], key=lambda x: x[1])[0]).split()]
 
     naive_schemes = []
     for g in gold_schemes:
