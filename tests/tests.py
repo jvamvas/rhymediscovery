@@ -121,3 +121,29 @@ class EvaluateTestCase(BaseTestCase):
         self.assertEqual(result.naive_baseline_success.precision, 0.25)
         self.assertEqual(result.naive_baseline_success.recall, 0.5)
         self.assertAlmostEqual(result.naive_baseline_success.f_score, 1/3)
+        self.assertEqual(result.less_naive_baseline_success.accuracy, 100)
+        self.assertEqual(result.less_naive_baseline_success.precision, 1)
+        self.assertEqual(result.less_naive_baseline_success.recall, 1)
+        self.assertAlmostEqual(result.less_naive_baseline_success.f_score, 1)
+        self.assertEqual(result.input_success.accuracy, 100)
+        self.assertEqual(result.input_success.precision, 1)
+        self.assertEqual(result.input_success.recall, 1)
+        self.assertAlmostEqual(result.input_success.f_score, 1)
+
+
+class ParseSchemesTestCase(TestCase):
+
+    def setUp(self):
+        self.scheme_filename = '../allschemes.json'
+        self.schemes = findschemes.Schemes(self.scheme_filename)
+
+    def test_scheme_list(self):
+        self.assertEqual(len(self.schemes.scheme_list), 462)
+        self.assertEqual(self.schemes.scheme_list[0], [1, 1])
+        self.assertEqual(self.schemes.num_schemes, 462)
+
+    def test_scheme_array(self):
+        self.assertEqual(self.schemes.scheme_array.shape, (462,))
+
+    def test_get_schemes_for_len(self):
+        self.assertEqual(self.schemes.get_schemes_for_len(2), [0])
