@@ -86,9 +86,9 @@ def load_gold(gold_file):
     for i, line in enumerate(lines):
         line = line.split()
         if i % 4 == 0:
-            stanzas.append(line[1:])
+            stanzas.append(tuple(line[1:]))
         elif i % 4 == 1:
-            stanzaschemes.append([int(i) for i in line])
+            stanzaschemes.append(tuple(int(i) for i in line))
     return [stanzaschemes, stanzas]
 
 
@@ -98,9 +98,9 @@ def load_hypothesis(result_lines):
     for i, line in enumerate(result_lines):
         line = line.split()
         if i % 3 == 0:
-            stanzas.append(line)
+            stanzas.append(tuple(line))
         elif i % 3 == 1:
-            schemes.append([int(i) for i in line])
+            schemes.append(tuple(int(i) for i in line))
     return zip(stanzas, schemes)
 
 
@@ -164,7 +164,7 @@ def naive(gold_schemes):
     for i in dist.keys():
         if not dist[i]:
             continue
-        best_schemes[int(i)] = [int(j) for j in (max(dist[i], key=lambda x: x[1])[0]).split()]
+        best_schemes[int(i)] = tuple(int(j) for j in (max(dist[i], key=lambda x: x[1])[0]).split())
 
     naive_schemes = []
     for g in gold_schemes:
@@ -179,7 +179,7 @@ def less_naive(gold_schemes):
         best_schemes[len(g)][tuple(g)] += 1
 
     for i in best_schemes:
-        best_schemes[i] = list(max(best_schemes[i].items(), key=lambda x: x[1])[0])
+        best_schemes[i] = tuple(max(best_schemes[i].items(), key=lambda x: x[1])[0])
 
     naive_schemes = []
     for g in gold_schemes:

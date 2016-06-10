@@ -51,19 +51,19 @@ schwoll fuß sehnsuchtsvoll gruß ihm geschehn hin gesehn
     def test_basicortho_findschemes(self):
         results = findschemes.find_schemes(self.stanzas, findschemes.init_basicortho_ttable)
         self.assertEqual(results[0], (
-            ['schwoll', 'daran', 'ruhevoll', 'hinan', 'lauscht', 'empor', 'rauscht', 'hervor'],
-            [1, 2, 1, 2, 3, 4, 3, 4],
+            ('schwoll', 'daran', 'ruhevoll', 'hinan', 'lauscht', 'empor', 'rauscht', 'hervor'),
+            (1, 2, 1, 2, 3, 4, 3, 4),
         ))
         for stanza, scheme in results:
-            self.assertEqual(scheme, [1, 2, 1, 2, 3, 4, 3, 4])
+            self.assertEqual(scheme, (1, 2, 1, 2, 3, 4, 3, 4))
 
     def test_uniform_init_findschemes(self):
         results = findschemes.find_schemes(self.stanzas, findschemes.init_uniform_ttable)
         self.assertEqual(results[0], (
-            ['schwoll', 'daran', 'ruhevoll', 'hinan', 'lauscht', 'empor', 'rauscht', 'hervor'],
-            [1, 2, 1, 2, 3, 4, 3, 4],
+            ('schwoll', 'daran', 'ruhevoll', 'hinan', 'lauscht', 'empor', 'rauscht', 'hervor'),
+            (1, 2, 1, 2, 3, 4, 3, 4),
         ))
-        self.assertNotEqual(results[2][1], [1, 2, 1, 2, 3, 4, 3, 4], msg='Uniform misclassifies third stanza')
+        self.assertNotEqual(results[2][1], (1, 2, 1, 2, 3, 4, 3, 4), msg='Uniform misclassifies third stanza')
 
     @skipUnless('test_all_rhymedata' in ' '.join(sys.argv), 'skip all.pgold')
     def test_all_rhymedata(self):
@@ -88,9 +88,9 @@ schwoll fuß sehnsuchtsvoll gruß ihm geschehn hin gesehn
         words = ['w1', 'w2', 'w3', 'w4']
         stanza = findschemes.Stanza(words)
         stanza.set_word_indices(words)
-        scheme1 = [1, 2, 1, 2]
+        scheme1 = (1, 2, 1, 2)
         self.assertEqual(findschemes.get_rhymelists(stanza, scheme1), [[0, 2], [1, 3]])
-        scheme2 = [1, 1, 2, 2]
+        scheme2 = (1, 1, 2, 2)
         self.assertEqual(findschemes.get_rhymelists(stanza, scheme2), [[0, 1], [2, 3]])
 
 
@@ -142,7 +142,7 @@ class ParseSchemesTestCase(TestCase):
 
     def test_scheme_list(self):
         self.assertEqual(len(self.schemes.scheme_list), 462)
-        self.assertEqual(self.schemes.scheme_list[0], [1, 1])
+        self.assertEqual(self.schemes.scheme_list[0], (1, 1))
         self.assertEqual(self.schemes.num_schemes, 462)
 
     def test_scheme_array(self):

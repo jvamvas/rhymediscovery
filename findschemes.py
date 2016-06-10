@@ -33,7 +33,7 @@ def load_stanzas(stanzas_file):
 class Stanza:
 
     def __init__(self, stanza_words):
-        self.words = stanza_words
+        self.words = tuple(stanza_words)
         self.word_indices = None
 
     def set_word_indices(self, words):
@@ -61,7 +61,7 @@ class Schemes:
         scheme_dict = defaultdict(list)
         for scheme_len, scheme_group in schemes.items():
             for scheme_str, _count in scheme_group:
-                scheme_code = [int(c) for c in scheme_str.split(' ')]
+                scheme_code = tuple(int(c) for c in scheme_str.split(' '))
                 scheme_list.append(scheme_code)
                 scheme_dict[int(scheme_len)].append(len(scheme_list) - 1)
         return scheme_list, scheme_dict
