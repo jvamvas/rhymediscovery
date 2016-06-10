@@ -89,22 +89,19 @@ def load_gold(gold_file):
         if i % 4 == 0:
             stanzas.append(line[1:])
         elif i % 4 == 1:
-            if not line:
-                logging.warning("Error in goldfile line {}".format(i))
-            stanzaschemes.append(line)
+            stanzaschemes.append([int(i) for i in line])
     return [stanzaschemes, stanzas]
 
 
 def load_hypothesis(result_lines):
-    stanzas = schemes = []
+    stanzas = []
+    schemes = []
     for i, line in enumerate(result_lines):
         line = line.split()
         if i % 3 == 0:
             stanzas.append(line)
         elif i % 3 == 1:
-            if not line:
-                logging.warning("Error in result! {}".format(i))
-            schemes.append(line)
+            schemes.append([int(i) for i in line])
     return zip(stanzas, schemes)
 
 
@@ -167,7 +164,7 @@ def naive(gold_schemes):
     for i in dist:
         if not dist[i]:
             continue
-        best_schemes[int(i)] = (max(dist[i], key=lambda x: x[1])[0]).split()
+        best_schemes[int(i)] = [int(i) for i in (max(dist[i], key=lambda x: x[1])[0]).split()]
 
     naive_schemes = []
     for g in gold_schemes:
