@@ -50,18 +50,21 @@ class Schemes:
 
     def __init__(self, scheme_file):
         self.scheme_file = scheme_file
-        self.scheme_list = self._parse_scheme_file()
+        # Use redundant data structures for lookup optimization
+        self.scheme_list, self.scheme_dict = self._parse_scheme_file()
         self.num_schemes = len(self.scheme_list)
         self.scheme_array = self._create_scheme_array()
 
     def _parse_scheme_file(self):
         schemes = json.loads(self.scheme_file.read(), object_pairs_hook=OrderedDict)
         scheme_list = []
-        for scheme_group in schemes.values():
-            for scheme_str, count in scheme_group:
+        scheme_dict = defaultdict(list)
+        for scheme_len, scheme_group in schemes.items():
+            for scheme_str, _count in scheme_group:
                 scheme_code = [int(c) for c in scheme_str.split(' ')]
                 scheme_list.append(scheme_code)
-        return scheme_list
+                scheme_dict[int(scheme_len)].append(len(scheme_list) - 1)
+        return scheme_list, scheme_dict
 
     def _create_scheme_array(self):
         return numpy.arange(self.num_schemes)
@@ -70,7 +73,7 @@ class Schemes:
         """
         :return: List of indices of schemes with length n
         """
-        return [i for i, scheme in enumerate(self.scheme_list) if len(scheme) == n]
+        return self.scheme_dict[n]
 
 
 def get_wordlist(stanzas):
