@@ -130,7 +130,7 @@ def init_basicortho_ttable(words):
     t_table[:, n] = numpy.random.rand(1, n)  # no estimate for P(r|no history)
 
     # normalize
-    t_totals = numpy.sum(t_table, axis=1)
+    t_totals = numpy.sum(t_table, axis=0)
     for i, t_total in enumerate(t_totals.tolist()):
         t_table[:, i] /= t_total
     return t_table
