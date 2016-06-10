@@ -127,7 +127,7 @@ def post_prob_scheme(t_table, words, stanza, scheme):
         for i, w in enumerate(rhymelist):
             r = words.index(w)
             if i == 0:  # first word, use P(w|x)
-                myprob = t_table[r, n]
+                myprob *= t_table[r, n]
             else:
                 for v in rhymelist[:i]:  # history
                     c = words.index(v)
