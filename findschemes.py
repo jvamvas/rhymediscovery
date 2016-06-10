@@ -146,9 +146,8 @@ def e_unnorm_post(t_table, words, stanzas, schemes, rprobs):
         scheme_indices = schemes.get_schemes_for_len(len(stanza))
         for scheme_index in scheme_indices:
             scheme = schemes.scheme_list[scheme_index]
-            # TODO Multiply with rprobs column-wise
-            posterior_prob = rprobs[scheme_index] * post_prob_scheme(t_table, words, stanza, scheme)
-            probs[i, scheme_index] = posterior_prob
+            probs[i, scheme_index] = post_prob_scheme(t_table, words, stanza, scheme)
+    probs = numpy.dot(probs, numpy.diag(rprobs))
     return probs
 
 
