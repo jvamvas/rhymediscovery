@@ -29,7 +29,7 @@ Accuracy {accuracy}
 Precision {precision}
 Recall {recall}
 F-score {f_score}""".format(
-            accuracy=' '.join([str(n) for n in self.accuracy]),
+            accuracy=self.accuracy,
             precision=self.precision,
             recall=self.recall,
             f_score=self.f_score,
@@ -116,7 +116,7 @@ def compare(stanzas, gold_schemes, found_schemes):
     for (g, f) in zip(gold_schemes, found_schemes):
         if g == f:
             correct += 1
-    result.accuracy = [correct, total, 100 * correct / total]
+    result.accuracy = 100 * correct / total
 
     # for each word, let rhymeset[word] = set of words in rest of stanza rhyming with the word
     # precision = # correct words in rhymeset[word]/# words in proposed rhymeset[word]

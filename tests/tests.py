@@ -117,7 +117,7 @@ class EvaluateTestCase(BaseTestCase):
         self.assertEqual(result.num_stanzas, 4)
         self.assertEqual(result.num_lines, 32)
         self.assertEqual(result.num_end_word_types, 29)
-        self.assertEqual(result.naive_baseline_success.accuracy, [0.0, 4.0, 0.0])
+        self.assertEqual(result.naive_baseline_success.accuracy, 0.0)
         self.assertEqual(result.naive_baseline_success.precision, 0.25)
         self.assertEqual(result.naive_baseline_success.recall, 0.5)
         self.assertAlmostEqual(result.naive_baseline_success.f_score, 1/3)
