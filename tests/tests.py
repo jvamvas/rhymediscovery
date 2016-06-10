@@ -1,5 +1,5 @@
 # coding=utf-8
-from unittest import TestCase
+from unittest import TestCase, skipUnless
 
 import sys
 
@@ -63,6 +63,31 @@ schwoll fuß sehnsuchtsvoll gruß ihm geschehn hin gesehn
         ))
         self.assertNotEqual(results[2][1], [1, 2, 1, 2, 3, 4, 3, 4], msg='Uniform misclassifies third stanza')
 
+    @skipUnless('test_all_rhymedata' in ' '.join(sys.argv), 'skip all.pgold')
+    def test_all_rhymedata(self):
+        args = [
+            '../rhymedata/english_gold/all.pgold',
+            'o',
+            'out_all.txt',
+        ]
+        findschemes.main(args)
+
+    @skipUnless('test_sidney_rhymedata' in ' '.join(sys.argv), 'skip sidney.pgold')
+    def test_sidney_rhymedata(self):
+        input_file = '../rhymedata/english_gold/sidney.pgold'
+        output_file = 'out_sidney.txt'
+        args = [
+            input_file,
+            'o',
+            output_file,
+        ]
+        findschemes.main(args)
+        evaluate_args = [
+            input_file,
+            output_file,
+        ]
+        evaluate.main(evaluate_args)
+
     def test_get_wordset(self):
         stanzas = [['word1a', 'word1b'], ['word2a', 'word2b']]
         words = ['word1a', 'word1b', 'word2a', 'word2b']
@@ -84,6 +109,8 @@ schwoll fuß sehnsuchtsvoll gruß ihm geschehn hin gesehn
 class EvaluateTestCase(BaseTestCase):
     def setUp(self):
         super(EvaluateTestCase, self).setUp()
+
+    def test_main(self):
         findscheme_args = [
             self.endings_file,
             self.init_type,
@@ -97,10 +124,15 @@ class EvaluateTestCase(BaseTestCase):
         evaluate.main(evaluate_args)
 
     def test_evaluate(self):
-        if not hasattr(sys.stdout, "getvalue"):
-            self.fail("Test needs to run in buffered mode")
-        output = sys.stdout.getvalue().strip()
-        self.assertIn("""\
-Num of stanzas:  4
-Num of lines:  32
-Num of end word types:  29""", output)
+        with open(self.endings_file, 'r') as f:
+            gstanzaschemes, gstanzas = evaluate.load_gold(f)
+        self.results = findschemes.find_schemes(self.stanzas, findschemes.init_basicortho_ttable)
+        hstanzaschemes = [scheme for (words, scheme) in self.results]
+        result = evaluate.evaluate(gstanzaschemes, gstanzas, hstanzaschemes)
+        self.assertEqual(result.num_stanzas, 4)
+        self.assertEqual(result.num_lines, 32)
+        self.assertEqual(result.num_end_word_types, 29)
+        self.assertEqual(result.naive_baseline_success.accuracy, [0.0, 4.0, 0.0])
+        self.assertEqual(result.naive_baseline_success.precision, 0.25)
+        self.assertEqual(result.naive_baseline_success.recall, 0.5)
+        self.assertAlmostEqual(result.naive_baseline_success.f_score, 1/3)
