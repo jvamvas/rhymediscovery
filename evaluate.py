@@ -92,19 +92,20 @@ def load_gold(gold_file):
             if not line:
                 logging.warning("Error in goldfile line {}".format(i))
             stanzaschemes.append(line)
-    gold_file.close()
     return [stanzaschemes, stanzas]
 
 
-def load_result(result_lines):
-    schemes = []
+def load_hypothesis(result_lines):
+    stanzas = schemes = []
     for i, line in enumerate(result_lines):
         line = line.split()
-        if i % 3 == 1:
+        if i % 3 == 0:
+            stanzas.append(line)
+        elif i % 3 == 1:
             if not line:
                 logging.warning("Error in result! {}".format(i))
             schemes.append(line)
-    return schemes
+    return zip(stanzas, schemes)
 
 
 def compare(stanzas, gold_schemes, found_schemes):
@@ -189,7 +190,7 @@ def less_naive(gold_schemes):
     return naive_schemes
 
 
-def evaluate(gstanzaschemes, gstanzas, hstanzaschemes):
+def evaluate(gstanzaschemes, gstanzas, hypothesis):
     words = get_wordset(gstanzas)
 
     result = EvaluationResult()
@@ -203,6 +204,7 @@ def evaluate(gstanzaschemes, gstanzas, hstanzaschemes):
     less_naive_schemes = less_naive(gstanzaschemes)
     result.less_naive_baseline_success = compare(gstanzas, gstanzaschemes, less_naive_schemes)
 
+    hstanzaschemes = [scheme for (stanza, scheme) in hypothesis]
     result.input_success = compare(gstanzas, gstanzaschemes, hstanzaschemes)
     return result
 
@@ -214,9 +216,10 @@ def main(args_list):
     args = parser.parse_args(args_list)
 
     gstanzaschemes, gstanzas = load_gold(args.gold_file)
+    args.gold_file.close()
 
     hypothesis_lines = args.hypothesis_file.readlines()
-    hstanzaschemes = load_result(hypothesis_lines)
+    hstanzaschemes = load_hypothesis(hypothesis_lines)
 
     result = evaluate(gstanzaschemes, gstanzas, hstanzaschemes)
     print(result)

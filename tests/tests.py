@@ -74,22 +74,6 @@ schwoll fuß sehnsuchtsvoll gruß ihm geschehn hin gesehn
         ]
         findschemes.main(args)
 
-    @skipUnless('test_sidney_rhymedata' in ' '.join(sys.argv), 'skip sidney.pgold')
-    def test_sidney_rhymedata(self):
-        input_file = '../rhymedata/english_gold/sidney.pgold'
-        output_file = 'out_sidney.txt'
-        args = [
-            input_file,
-            'o',
-            output_file,
-        ]
-        findschemes.main(args)
-        evaluate_args = [
-            input_file,
-            output_file,
-        ]
-        evaluate.main(evaluate_args)
-
     def test_get_wordset(self):
         stanzas = [['word1a', 'word1b'], ['word2a', 'word2b']]
         words = ['word1a', 'word1b', 'word2a', 'word2b']
@@ -129,8 +113,7 @@ class EvaluateTestCase(BaseTestCase):
         with open(self.endings_file, 'r') as f:
             gstanzaschemes, gstanzas = evaluate.load_gold(f)
         self.results = findschemes.find_schemes(self.stanzas, findschemes.init_basicortho_ttable)
-        hstanzaschemes = [scheme for (words, scheme) in self.results]
-        result = evaluate.evaluate(gstanzaschemes, gstanzas, hstanzaschemes)
+        result = evaluate.evaluate(gstanzaschemes, gstanzas, self.results)
         self.assertEqual(result.num_stanzas, 4)
         self.assertEqual(result.num_lines, 32)
         self.assertEqual(result.num_end_word_types, 29)
