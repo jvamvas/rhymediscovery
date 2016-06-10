@@ -8,6 +8,7 @@ from __future__ import division, print_function, unicode_literals
 
 import argparse
 import json
+import logging
 import math
 import os
 import random
@@ -123,14 +124,11 @@ def e_unnorm_post(t_table, words, stanzas, schemes, rprobs):
     probs = []
     numstanzas = len(stanzas)
     for i, stanza in enumerate(stanzas):
-        if i == numstanzas / 2:
-            print(i)
         stanzaprobs = []
         myschemes = schemes[len(stanza)]
         for myscheme in myschemes:
             stanzaprobs.append(rprobs[tuple(myscheme)] * post_prob_scheme(t_table, words, stanza, myscheme))
         probs.append(stanzaprobs)
-    print()
     return probs
 
 
@@ -218,9 +216,9 @@ def iterate(t_table, words, stanzas, schemes, rprobs, maxsteps):
                 if len(probs[underflow[0]]) == 1:
                     probs[underflow[0]][0] = 1e-300
                     allschemeprobs[underflow[0]] = 1e-300
-                    print("Fixed underflow error on", underflow[1])
+                    logging.warning("Fixed underflow error on {}".format(underflow[1]))
                 else:
-                    print("Problem!", underflow, probs[underflow[0]])
+                    logging.warning("Problem! {} {}".format(underflow, probs[underflow[0]]))
 
         allschemeprobs = list(map(lambda x: math.log(x, 2), allschemeprobs))
         data_prob = sum(allschemeprobs)
@@ -234,13 +232,13 @@ def iterate(t_table, words, stanzas, schemes, rprobs, maxsteps):
         if ctr > 0 and data_prob - old_data_prob < epsilon:
             break
 
-        print("Iteration", ctr, "-- Log likelihood of data:", data_prob)
+        logging.info("Iteration {} -- Log likelihood of data: {}".format(ctr, data_prob))
 
         [t_table, rprobs] = m_norm_frac(t_table, len(words), rprobs)
 
     # error if it didn't converge
     if ctr == maxsteps - 1 and data_prob - old_data_prob >= epsilon:
-        print("Warning: EM did not converge")
+        logging.warning("Warning: EM did not converge")
 
     return probs, data_prob
 
@@ -277,12 +275,12 @@ def print_results(results, outfile):
 
 def find_schemes(stanzas, t_table_init_function=init_uniform_ttable):
     schemes = load_schemes('allschemes.json')
-    print("Loaded files")
+    logging.info("Loaded files")
     words = get_wordset(stanzas)
     # Initialize p(r)
     rprobs = init_uniform_r(schemes)
     t_table = t_table_init_function(words)
-    print("Initialized,", len(words), "words")
+    logging.info("Initialized {} words".format(len(words)))
     final_probs, data_prob = iterate(t_table, words, stanzas, schemes, rprobs, 100)
 
     results = get_results(final_probs, stanzas, schemes)
@@ -294,7 +292,13 @@ def main(args_list):
     parser.add_argument('infile', type=argparse.FileType('r'))
     parser.add_argument('init_type', choices=('u', 'o', 'p'), default='u')
     parser.add_argument('outfile', type=argparse.FileType('w'))
+    parser.add_argument(
+        '-v', '--verbose',
+        help="Verbose output",
+        action="store_const", dest="loglevel", const=logging.INFO,
+    )
     args = parser.parse_args(args_list)
+    logging.basicConfig(level=args.loglevel)
 
     stanzas = load_stanzas(args.infile)
 
@@ -309,7 +313,7 @@ def main(args_list):
     results = find_schemes(stanzas, init_function)
 
     print_results(results, args.outfile)
-    print("Wrote result")
+    logging.info("Wrote result")
 
 
 if __name__ == '__main__':

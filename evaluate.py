@@ -8,6 +8,7 @@ from __future__ import print_function, unicode_literals
 
 import argparse
 import json
+import logging
 import os
 import sys
 from collections import defaultdict
@@ -89,7 +90,7 @@ def load_gold(gold_file):
             stanzas.append(line[1:])
         elif i % 4 == 1:
             if not line:
-                print("Error in gold!", i, lines[i - 1], lines[i - 2])
+                logging.warning("Error in goldfile line {}".format(i))
             stanzaschemes.append(line)
     gold_file.close()
     return [stanzaschemes, stanzas]
@@ -101,7 +102,7 @@ def load_result(result_lines):
         line = line.split()
         if i % 3 == 1:
             if not line:
-                print("Error in result!", i, result_lines[i - 1], result_lines[i - 2])
+                logging.warning("Error in result! {}".format(i))
             schemes.append(line)
     return schemes
 
