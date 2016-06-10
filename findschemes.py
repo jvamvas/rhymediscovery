@@ -101,7 +101,9 @@ def init_uniform_ttable(words):
 
 
 def basic_word_sim(word1, word2):
-    """Simple measure of similarity: num of letters in common/max length"""
+    """
+    Simple measure of similarity: Number of letters in common / max length
+    """
     common = 0.0
     if word1 == word2:
         return 1.0
@@ -112,7 +114,9 @@ def basic_word_sim(word1, word2):
 
 
 def init_basicortho_ttable(words):
-    """initialize probs according to simple measure of orthographic similarity"""
+    """
+    Initialize probabilities according to simple measure of orthographic similarity
+    """
     n = len(words)
     t_table = numpy.zeros((n, n + 1))
 
@@ -123,14 +127,12 @@ def init_basicortho_ttable(words):
                 t_table[r, c] = t_table[c, r]  # similarity is symmetric
             else:
                 t_table[r, c] = basic_word_sim(w, v) + 0.001  # for backoff
-        t_table[r, n] = random.random()  # no estimate for P(r|no history)
+    t_table[:, n] = numpy.random.rand(1, n)  # no estimate for P(r|no history)
 
     # normalize
-    for c in range(n + 1):
-        tot = sum(t_table[:, c])
-        for r in range(n):
-            t_table[r, c] = t_table[r, c] / tot
-
+    t_totals = numpy.sum(t_table, axis=1)
+    for i, t_total in enumerate(t_totals.tolist()):
+        t_table[:, i] /= t_total
     return t_table
 
 
