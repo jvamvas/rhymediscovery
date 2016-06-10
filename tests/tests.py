@@ -75,9 +75,9 @@ schwoll fuß sehnsuchtsvoll gruß ihm geschehn hin gesehn
         findschemes.main(args)
 
     def test_get_wordset(self):
-        stanzas = [['word1a', 'word1b'], ['word2a', 'word2b']]
+        stanzas = [findschemes.Stanza(['word1a', 'word1b']), findschemes.Stanza(['word2a', 'word2b'])]
         words = ['word1a', 'word1b', 'word2a', 'word2b']
-        self.assertEqual(findschemes.get_wordset(stanzas), words)
+        self.assertEqual(findschemes.get_wordlist(stanzas), words)
 
     def test_init_uniform_table(self):
         words = ['word1', 'word2']
@@ -85,11 +85,13 @@ schwoll fuß sehnsuchtsvoll gruß ihm geschehn hin gesehn
         numpy.testing.assert_array_equal(findschemes.init_uniform_ttable(words), t_table)
 
     def test_get_rhymelists(self):
-        stanza = ['w1', 'w2', 'w3', 'w4']
+        words = ['w1', 'w2', 'w3', 'w4']
+        stanza = findschemes.Stanza(words)
+        stanza.set_word_indices(words)
         scheme1 = [1, 2, 1, 2]
-        self.assertEqual(findschemes.get_rhymelists(stanza, scheme1), [['w1', 'w3'], ['w2', 'w4']])
+        self.assertEqual(findschemes.get_rhymelists(stanza, scheme1), [[0, 2], [1, 3]])
         scheme2 = [1, 1, 2, 2]
-        self.assertEqual(findschemes.get_rhymelists(stanza, scheme2), [['w1', 'w2'], ['w3', 'w4']])
+        self.assertEqual(findschemes.get_rhymelists(stanza, scheme2), [[0, 1], [2, 3]])
 
 
 class EvaluateTestCase(BaseTestCase):
@@ -135,7 +137,8 @@ class ParseSchemesTestCase(TestCase):
 
     def setUp(self):
         self.scheme_filename = '../allschemes.json'
-        self.schemes = findschemes.Schemes(self.scheme_filename)
+        with open(self.scheme_filename, 'r') as f:
+            self.schemes = findschemes.Schemes(f)
 
     def test_scheme_list(self):
         self.assertEqual(len(self.schemes.scheme_list), 462)
@@ -147,3 +150,13 @@ class ParseSchemesTestCase(TestCase):
 
     def test_get_schemes_for_len(self):
         self.assertEqual(self.schemes.get_schemes_for_len(2), [0])
+
+
+class StanzaTestCase(TestCase):
+
+    def setUp(self):
+        self.words = ['w1', 'w2', 'w3']
+        self.stanza = findschemes.Stanza(self.words)
+
+    def test_str(self):
+        self.assertEqual(str(self.stanza), 'w1 w2 w3')

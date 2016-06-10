@@ -13,7 +13,6 @@ import os
 import random
 import sys
 from collections import defaultdict, OrderedDict
-from functools import reduce
 
 import numpy
 
@@ -25,23 +24,38 @@ def load_stanzas(stanzas_file):
     f = stanzas_file.readlines()
     stanzas = []
     for i, line in enumerate(f):
-        line = line.split()
         if i % 4 == 0:
-            stanzas.append(line[1:])
+            stanza_words = line.strip().split()[1:]
+            stanzas.append(Stanza(stanza_words))
     return stanzas
+
+
+class Stanza:
+
+    def __init__(self, stanza_words):
+        self.words = stanza_words
+        self.word_indices = None
+
+    def set_word_indices(self, words):
+        self.word_indices = [words.index(word) for word in self.words]
+
+    def __str__(self):
+        return ' '.join(self.words)
+
+    def __len__(self):
+        return len(self.words)
 
 
 class Schemes:
 
-    def __init__(self, scheme_filename):
-        self.scheme_filename = scheme_filename
+    def __init__(self, scheme_file):
+        self.scheme_file = scheme_file
         self.scheme_list = self._parse_scheme_file()
         self.num_schemes = len(self.scheme_list)
         self.scheme_array = self._create_scheme_array()
 
     def _parse_scheme_file(self):
-        with open(self.scheme_filename, 'r') as f:
-            schemes = json.loads(f.read(), object_pairs_hook=OrderedDict)
+        schemes = json.loads(self.scheme_file.read(), object_pairs_hook=OrderedDict)
         scheme_list = []
         for scheme_group in schemes.values():
             for scheme_str, count in scheme_group:
@@ -59,10 +73,12 @@ class Schemes:
         return [i for i, scheme in enumerate(self.scheme_list) if len(scheme) == n]
 
 
-def get_wordset(stanzas):
-    """get all words"""
-    words = sorted(list(set(reduce(lambda x, y: x + y, stanzas))))
-    return words
+def get_wordlist(stanzas):
+    """
+    Get an iterable of all final words in all stanzas
+    """
+    wordlist = sorted(list(set().union(*[stanza.words for stanza in stanzas])))
+    return wordlist
 
 
 def get_rhymelists(stanza, scheme):
@@ -70,8 +86,8 @@ def get_rhymelists(stanza, scheme):
     Transform stanza into list of ordered lists of rhymesets as defined by rhyme scheme
     """
     rhymelists = defaultdict(list)
-    for stanzaword, schemeword in zip(stanza, scheme):
-        rhymelists[schemeword].append(stanzaword)
+    for word_index, schemeword in zip(stanza.word_indices, scheme):
+        rhymelists[schemeword].append(word_index)
     return list(rhymelists.values())
 
 
@@ -124,14 +140,12 @@ def post_prob_scheme(t_table, words, stanza, scheme):
     n = len(words)
     rhymelists = get_rhymelists(stanza, scheme)
     for rhymelist in rhymelists:
-        for i, w in enumerate(rhymelist):
-            r = words.index(w)
+        for i, word_index in enumerate(rhymelist):
             if i == 0:  # first word, use P(w|x)
-                myprob *= t_table[r, n]
+                myprob *= t_table[word_index, n]
             else:
-                for v in rhymelist[:i]:  # history
-                    c = words.index(v)
-                    myprob *= t_table[r, c]
+                for word_index2 in rhymelist[:i]:  # history
+                    myprob *= t_table[word_index, word_index2]
     if myprob == 0 and len(stanza) > 30:  # probably underflow
         myprob = 1e-300
     return myprob
@@ -174,19 +188,16 @@ def maximization_step(words, stanzas, schemes, probs):
             scheme = schemes.scheme_list[scheme_index]
             rhymelists = get_rhymelists(stanza, scheme)
             for rhymelist in rhymelists:
-                for j, w in enumerate(rhymelist):
-                    r = words.index(w)
-                    t_table[r, n] += myprob
-                    for v in rhymelist[:j] + rhymelist[j + 1:]:
-                        c = words.index(v)
-                        t_table[r, c] += myprob
+                for j, word_index in enumerate(rhymelist):
+                    t_table[word_index, n] += myprob
+                    for word_index2 in rhymelist[:j] + rhymelist[j + 1:]:
+                        t_table[word_index, word_index2] += myprob
 
     # Normalize t_table
-    for c in range(n + 1):
-        tot = numpy.sum(t_table[:, c])
-        if tot == 0:
-            continue
-        t_table[:, c] /= tot
+    t_table_sums = numpy.sum(t_table, axis=0)
+    for i, t_table_sum in enumerate(t_table_sums.tolist()):
+        if t_table_sum != 0:
+            t_table[:, i] /= t_table_sum
 
     # Normalize rprobs
     totrprob = numpy.sum(rprobs)
@@ -255,24 +266,29 @@ def get_results(probs, stanzas, schemes):
     results = []
     for i, stanza in enumerate(stanzas):
         best_scheme = schemes.scheme_list[numpy.argmax(probs[i, :])]
-        results.append((stanza, best_scheme))
+        results.append((stanza.words, best_scheme))
     return results
 
 
 def print_results(results, outfile):
     """write rhyme schemes at convergence"""
-    for stanza, scheme in results:
+    for stanza_words, scheme in results:
         # scheme with highest probability
-        outfile.write(str(' ').join(stanza) + str('\n'))
+        outfile.write(str(' ').join(stanza_words) + str('\n'))
         outfile.write(str(' ').join(map(str, scheme)) + str('\n\n'))
     outfile.close()
 
 
 def find_schemes(stanzas, t_table_init_function=init_uniform_ttable):
     scheme_filename = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'allschemes.json')
-    schemes = Schemes(scheme_filename)
+    with open(scheme_filename, 'r') as scheme_file:
+        schemes = Schemes(scheme_file)
     logging.info("Loaded files")
-    words = get_wordset(stanzas)
+
+    words = get_wordlist(stanzas)
+    for stanza in stanzas:
+        stanza.set_word_indices(words)
+
     # Initialize p(r)
     rprobs = init_uniform_r(schemes)
     t_table = t_table_init_function(words)
