@@ -336,7 +336,7 @@ def main(args_list=None):
              'The last one requires you to have CELEX on your machine.',
         dest='init_type',
         choices=('u', 'o', 'p', 'd'),
-        default='u',
+        default='o',
     )
     parser.add_argument(
         '-i, --iterations',
