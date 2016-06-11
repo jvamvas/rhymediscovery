@@ -1,9 +1,7 @@
 # coding=utf-8
 from __future__ import division
 
-from unittest import TestCase, skipUnless
-
-import sys
+from unittest import TestCase
 
 import numpy
 
@@ -13,7 +11,7 @@ from rhymediscovery import find_schemes, evaluate_schemes
 class BaseTestCase(TestCase):
     def setUp(self):
         self.endings_file = 'tests/data/sample.pgold'
-        self.init_type = 'o'
+        self.init_type = 'd'
         self.output_file = 'tests/out.txt'
         with open(self.endings_file, 'r') as f:
             self.stanzas = find_schemes.load_stanzas(f)
@@ -32,37 +30,24 @@ class FindSchemesTestCase(BaseTestCase):
         find_schemes.main(args)
         with open(self.output_file, 'r') as f:
             output = f.read()
-            self.assertEqual(output, """\
-schwoll daran ruhevoll hinan lauscht empor rauscht hervor
-1 2 1 2 3 4 3 4
-
-ihm brut menschenlist todesglut ist grund bist gesund
-1 2 1 2 3 4 3 4
-
-nicht meer gesicht her nicht blau angesicht tau
-1 2 1 2 3 4 3 4
-
-schwoll fuß sehnsuchtsvoll gruß ihm geschehn hin gesehn
-1 2 1 2 3 4 3 4
-
-""")
+            self.assertTrue(output.startswith("""\
+minds love finds remove
+1 2 1 2
+"""))
 
     def test_basicortho_find_schemes(self):
         results = find_schemes.find_schemes(self.stanzas, find_schemes.init_basicortho_ttable)
         self.assertEqual(results[0], (
-            ('schwoll', 'daran', 'ruhevoll', 'hinan', 'lauscht', 'empor', 'rauscht', 'hervor'),
-            (1, 2, 1, 2, 3, 4, 3, 4),
+            ('minds', 'love', 'finds', 'remove'),
+            (1, 2, 1, 2),
         ))
-        for stanza, scheme in results:
-            self.assertEqual(scheme, (1, 2, 1, 2, 3, 4, 3, 4))
 
     def test_uniform_init_find_schemes(self):
         results = find_schemes.find_schemes(self.stanzas, find_schemes.init_uniform_ttable)
         self.assertEqual(results[0], (
-            ('schwoll', 'daran', 'ruhevoll', 'hinan', 'lauscht', 'empor', 'rauscht', 'hervor'),
-            (1, 2, 1, 2, 3, 4, 3, 4),
+            ('minds', 'love', 'finds', 'remove'),
+            (1, 2, 2, 1),
         ))
-        self.assertNotEqual(results[2][1], (1, 2, 1, 2, 3, 4, 3, 4), msg='Uniform misclassifies third stanza')
 
     def test_get_wordset(self):
         stanzas = [find_schemes.Stanza(['word1a', 'word1b']), find_schemes.Stanza(['word2a', 'word2b'])]
@@ -104,23 +89,23 @@ class EvaluateTestCase(BaseTestCase):
     def test_evaluate(self):
         with open(self.endings_file, 'r') as f:
             gstanzaschemes, gstanzas = evaluate_schemes.load_gold(f)
-        self.results = find_schemes.find_schemes(self.stanzas, find_schemes.init_basicortho_ttable)
+        self.results = find_schemes.find_schemes(self.stanzas, find_schemes.init_difflib_ttable)
         result = evaluate_schemes.evaluate(gstanzaschemes, gstanzas, self.results)
         self.assertEqual(result.num_stanzas, 4)
-        self.assertEqual(result.num_lines, 32)
-        self.assertEqual(result.num_end_word_types, 29)
-        self.assertEqual(result.naive_baseline_success.accuracy, 0.0)
-        self.assertEqual(result.naive_baseline_success.precision, 0.25)
-        self.assertEqual(result.naive_baseline_success.recall, 0.5)
-        self.assertAlmostEqual(result.naive_baseline_success.f_score, 1/3)
-        self.assertEqual(result.less_naive_baseline_success.accuracy, 1)
-        self.assertEqual(result.less_naive_baseline_success.precision, 1)
-        self.assertEqual(result.less_naive_baseline_success.recall, 1)
+        self.assertEqual(result.num_lines, 14)
+        self.assertEqual(result.num_end_word_types, 14)
+        self.assertAlmostEqual(result.naive_baseline_success.accuracy, 1)
+        self.assertAlmostEqual(result.naive_baseline_success.precision, 1)
+        self.assertAlmostEqual(result.naive_baseline_success.recall, 1)
+        self.assertAlmostEqual(result.naive_baseline_success.f_score, 1)
+        self.assertAlmostEqual(result.less_naive_baseline_success.accuracy, 1)
+        self.assertAlmostEqual(result.less_naive_baseline_success.precision, 1)
+        self.assertAlmostEqual(result.less_naive_baseline_success.recall, 1)
         self.assertAlmostEqual(result.less_naive_baseline_success.f_score, 1)
-        self.assertEqual(result.input_success.accuracy, 1)
-        self.assertEqual(result.input_success.precision, 1)
-        self.assertEqual(result.input_success.recall, 1)
-        self.assertAlmostEqual(result.input_success.f_score, 1)
+        self.assertGreaterEqual(result.input_success.accuracy, 0.75)
+        self.assertGreaterEqual(result.input_success.precision, 0.7)
+        self.assertGreaterEqual(result.input_success.recall, 0.7)
+        self.assertGreaterEqual(result.input_success.f_score, 0.7)
 
 
 class ParseSchemesTestCase(TestCase):

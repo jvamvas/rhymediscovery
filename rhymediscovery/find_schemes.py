@@ -114,7 +114,7 @@ def init_distance_ttable(wordlist, distance_function):
                 t_table[r, c] = t_table[c, r]  # Similarity is symmetric
             else:
                 t_table[r, c] = distance_function(w, v) + 0.001  # For backoff
-    t_table[:, n] = numpy.random.rand(1, n)  # No estimate for P(r|no history)
+    t_table[:, n] = numpy.mean(t_table[:, :-1], axis=1)
 
     # Normalize
     t_totals = numpy.sum(t_table, axis=0)
