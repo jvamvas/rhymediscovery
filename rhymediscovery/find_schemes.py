@@ -17,7 +17,7 @@ from difflib import SequenceMatcher
 
 import numpy
 
-import celex
+from rhymediscovery import celex
 
 
 def load_stanzas(stanzas_file):
@@ -287,7 +287,11 @@ def print_results(results, outfile):
 
 
 def find_schemes(stanzas, t_table_init_function=init_uniform_ttable, num_iterations=10):
-    scheme_filename = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'schemes.json')
+    # Allow input of string lists as stanzas
+    if not isinstance(stanzas[0], Stanza):
+        stanzas = [Stanza(words) for words in stanzas]
+
+    scheme_filename = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data', 'schemes.json')
     with open(scheme_filename, 'r') as scheme_file:
         schemes = Schemes(scheme_file)
     logging.info("Loaded files")
@@ -308,15 +312,16 @@ def find_schemes(stanzas, t_table_init_function=init_uniform_ttable, num_iterati
     return results
 
 
-def main(args_list):
+def main(args_list=None):
     """
     Wrapper for find_schemes if called from command line
     """
+    args_list = args_list or sys.argv[1:]
     parser = argparse.ArgumentParser(description='Discover schemes of given stanza file')
     parser.add_argument('infile', type=argparse.FileType('r'))
     parser.add_argument('init_type', choices=('u', 'o', 'p', 'd'), default='u')
     parser.add_argument('outfile', type=argparse.FileType('w'))
-    parser.add_argument('-i, --iterations', dest='num_iterations', help='Number of iterations', type=int, default=100)
+    parser.add_argument('-i, --iterations', dest='num_iterations', help='Number of iterations', type=int, default=10)
     parser.add_argument(
         '-v', '--verbose',
         help="Verbose output",
@@ -343,4 +348,4 @@ def main(args_list):
 
 
 if __name__ == '__main__':
-    main(sys.argv[1:])
+    main()

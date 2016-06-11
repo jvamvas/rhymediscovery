@@ -89,3 +89,4 @@ ENV/
 .ropeproject
 
 tests/out.txt
+rhymedata/

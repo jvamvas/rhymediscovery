@@ -24,10 +24,10 @@ class SuccessMeasure:
 
     def __str__(self):
         return """\
-Accuracy:\t{accuracy:.2f}
-Precision:\t{precision:.2f}
-Recall:\t\t{recall:.2f}
-F-score:\t{f_score:.2f}""".format(
+Accuracy:\t{accuracy:.4f}
+Precision:\t{precision:.4f}
+Recall:\t\t{recall:.4f}
+F-score:\t{f_score:.4f}""".format(
             accuracy=self.accuracy,
             precision=self.precision,
             recall=self.recall,
@@ -157,7 +157,7 @@ def compare(stanzas, gold_schemes, found_schemes):
 
 def naive(gold_schemes):
     """find naive baseline (most common scheme of a given length)?"""
-    scheme_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'schemes.json')
+    scheme_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'data', 'schemes.json')
     with open(scheme_path, 'r') as f:
         dist = json.loads(f.read())
     best_schemes = {}
@@ -206,7 +206,8 @@ def evaluate(gstanzaschemes, gstanzas, hypothesis):
     return result
 
 
-def main(args_list):
+def main(args_list=None):
+    args_list = args_list or sys.argv[1:]
     parser = argparse.ArgumentParser(description='Evaluate findschemes output')
     parser.add_argument('gold_file', type=argparse.FileType('r'))
     parser.add_argument('hypothesis_file', nargs='?', type=argparse.FileType('r'), default=sys.stdin)
@@ -223,4 +224,4 @@ def main(args_list):
 
 
 if __name__ == '__main__':
-    main(sys.argv[1:])
+    main()

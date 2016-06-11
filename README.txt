@@ -8,7 +8,7 @@ Our implementation is in Python using Numpy, and contains:
 
 Right now, our implementation of the algorithm for stanza dependencies is very slow. We would like to hold off on optimizing the code before releasing it. That said, it is just a simple modification of findschemes.py using forward-backward. (Unfortunately, even findschemes.py is reasonably slow for large datasets; we apologize.)
 
-The file allschemes.pickle is a serialization of the complete list of rhyme schemes, with overall frequencies (used in estimating the naive baseline). This should be placed in the same directory as the code.
+The file schemes.json is a serialization of the complete list of rhyme schemes, with overall frequencies (used in estimating the naive baseline). This should be placed in the same directory as the code.
 
 To learn rhyme schemes, use the command 
 

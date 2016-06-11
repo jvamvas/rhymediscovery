@@ -7,22 +7,21 @@ import sys
 
 import numpy
 
-import find_schemes
-import evaluate_schemes
+from rhymediscovery import find_schemes, evaluate_schemes
 
 
 class BaseTestCase(TestCase):
     def setUp(self):
-        self.endings_file = 'sample.pgold'
+        self.endings_file = 'data/sample.pgold'
         self.init_type = 'o'
         self.output_file = 'out.txt'
         with open(self.endings_file, 'r') as f:
             self.stanzas = find_schemes.load_stanzas(f)
 
 
-class find_schemesTestCase(BaseTestCase):
+class FindSchemesTestCase(BaseTestCase):
     def setUp(self):
-        super(find_schemesTestCase, self).setUp()
+        super(FindSchemesTestCase, self).setUp()
 
     def test_main(self):
         args = [
@@ -136,7 +135,7 @@ class EvaluateTestCase(BaseTestCase):
 class ParseSchemesTestCase(TestCase):
 
     def setUp(self):
-        self.scheme_filename = '../schemes.json'
+        self.scheme_filename = '../rhymediscovery/data/schemes.json'
         with open(self.scheme_filename, 'r') as f:
             self.schemes = find_schemes.Schemes(f)
 
