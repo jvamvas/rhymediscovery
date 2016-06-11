@@ -208,15 +208,25 @@ def evaluate(gstanzaschemes, gstanzas, hypothesis):
 
 def main(args_list=None):
     args_list = args_list or sys.argv[1:]
-    parser = argparse.ArgumentParser(description='Evaluate findschemes output')
-    parser.add_argument('gold_file', type=argparse.FileType('r'))
-    parser.add_argument('hypothesis_file', nargs='?', type=argparse.FileType('r'), default=sys.stdin)
+    parser = argparse.ArgumentParser(description='Evaluate find_schemes output')
+    parser.add_argument(
+        'infile',
+        help='Output of find_schemes that is evaluated',
+        nargs='?',
+        type=argparse.FileType('r'),
+        default=sys.stdin,
+    )
+    parser.add_argument(
+        'gold_file',
+        help='Stanzas annotated with correct rhyme schemes',
+        type=argparse.FileType('r'),
+    )
     args = parser.parse_args(args_list)
 
     gstanzaschemes, gstanzas = load_gold(args.gold_file)
     args.gold_file.close()
 
-    hypothesis_lines = args.hypothesis_file.readlines()
+    hypothesis_lines = args.infile.readlines()
     hstanzaschemes = load_hypothesis(hypothesis_lines)
 
     result = evaluate(gstanzaschemes, gstanzas, hstanzaschemes)

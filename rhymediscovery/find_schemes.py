@@ -318,21 +318,33 @@ def main(args_list=None):
     """
     args_list = args_list or sys.argv[1:]
     parser = argparse.ArgumentParser(description='Discover schemes of given stanza file')
-    parser.add_argument('infile', type=argparse.FileType('r'))
+    parser.add_argument(
+        'infile',
+        type=argparse.FileType('r'),
+    )
     parser.add_argument(
         'outfile',
+        help='Where the result is written to. Default: stdout',
         nargs='?',
         type=argparse.FileType('w'),
-        default=sys.stdout
+        default=sys.stdout,
     )
     parser.add_argument(
         '-t --init-type',
-        help='Initialization type for theta (pairwise rhyme-strength)',
+        help='Whether to initialize theta uniformly (u), with the orthographic similarity '
+             'measure (o), or using CELEX pronunciations and definition of rhyme (p). '
+             'The last one requires you to have CELEX on your machine.',
         dest='init_type',
         choices=('u', 'o', 'p', 'd'),
-        default='u'
+        default='u',
     )
-    parser.add_argument('-i, --iterations', dest='num_iterations', help='Number of iterations', type=int, default=10)
+    parser.add_argument(
+        '-i, --iterations',
+        help='Number of iterations (default: 10)',
+        dest='num_iterations',
+        type=int,
+        default=10,
+    )
     parser.add_argument(
         '-v', '--verbose',
         help="Verbose output",

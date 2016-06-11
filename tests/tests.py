@@ -79,8 +79,8 @@ class EvaluateTestCase(BaseTestCase):
         ]
         find_schemes.main(findscheme_args)
         evaluate_args = [
-            self.endings_file,
             self.output_file,
+            self.endings_file,
         ]
         evaluate_schemes.main(evaluate_args)
 
