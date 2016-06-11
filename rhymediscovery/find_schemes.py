@@ -319,7 +319,12 @@ def main(args_list=None):
     args_list = args_list or sys.argv[1:]
     parser = argparse.ArgumentParser(description='Discover schemes of given stanza file')
     parser.add_argument('infile', type=argparse.FileType('r'))
-    parser.add_argument('outfile', type=argparse.FileType('w'))
+    parser.add_argument(
+        'outfile',
+        nargs='?',
+        type=argparse.FileType('w'),
+        default=sys.stdout
+    )
     parser.add_argument(
         '-t --init-type',
         help='Initialization type for theta (pairwise rhyme-strength)',
@@ -331,7 +336,9 @@ def main(args_list=None):
     parser.add_argument(
         '-v', '--verbose',
         help="Verbose output",
-        action="store_const", dest="loglevel", const=logging.INFO,
+        action="store_const",
+        dest="loglevel",
+        const=logging.INFO,
     )
     args = parser.parse_args(args_list)
     logging.basicConfig(level=args.loglevel)
