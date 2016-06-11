@@ -319,8 +319,14 @@ def main(args_list=None):
     args_list = args_list or sys.argv[1:]
     parser = argparse.ArgumentParser(description='Discover schemes of given stanza file')
     parser.add_argument('infile', type=argparse.FileType('r'))
-    parser.add_argument('init_type', choices=('u', 'o', 'p', 'd'), default='u')
     parser.add_argument('outfile', type=argparse.FileType('w'))
+    parser.add_argument(
+        '-t --init-type',
+        help='Initialization type for theta (pairwise rhyme-strength)',
+        dest='init_type',
+        choices=('u', 'o', 'p', 'd'),
+        default='u'
+    )
     parser.add_argument('-i, --iterations', dest='num_iterations', help='Number of iterations', type=int, default=10)
     parser.add_argument(
         '-v', '--verbose',

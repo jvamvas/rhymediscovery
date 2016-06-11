@@ -11,7 +11,6 @@ from rhymediscovery import find_schemes, evaluate_schemes
 class BaseTestCase(TestCase):
     def setUp(self):
         self.endings_file = 'tests/data/sample.pgold'
-        self.init_type = 'd'
         self.output_file = 'tests/out.txt'
         with open(self.endings_file, 'r') as f:
             self.stanzas = find_schemes.load_stanzas(f)
@@ -24,8 +23,8 @@ class FindSchemesTestCase(BaseTestCase):
     def test_main(self):
         args = [
             self.endings_file,
-            self.init_type,
             self.output_file,
+            '-t', 'd',
         ]
         find_schemes.main(args)
         with open(self.output_file, 'r') as f:
@@ -76,7 +75,6 @@ class EvaluateTestCase(BaseTestCase):
     def test_main(self):
         findscheme_args = [
             self.endings_file,
-            self.init_type,
             self.output_file,
         ]
         find_schemes.main(findscheme_args)
