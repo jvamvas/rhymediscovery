@@ -12,9 +12,9 @@ from rhymediscovery import find_schemes, evaluate_schemes
 
 class BaseTestCase(TestCase):
     def setUp(self):
-        self.endings_file = 'data/sample.pgold'
+        self.endings_file = 'tests/data/sample.pgold'
         self.init_type = 'o'
-        self.output_file = 'out.txt'
+        self.output_file = 'tests/out.txt'
         with open(self.endings_file, 'r') as f:
             self.stanzas = find_schemes.load_stanzas(f)
 
@@ -63,15 +63,6 @@ schwoll fuß sehnsuchtsvoll gruß ihm geschehn hin gesehn
             (1, 2, 1, 2, 3, 4, 3, 4),
         ))
         self.assertNotEqual(results[2][1], (1, 2, 1, 2, 3, 4, 3, 4), msg='Uniform misclassifies third stanza')
-
-    @skipUnless('test_all_rhymedata' in ' '.join(sys.argv), 'skip all.pgold')
-    def test_all_rhymedata(self):
-        args = [
-            '../rhymedata/english_gold/all.pgold',
-            'o',
-            'out_all.txt',
-        ]
-        find_schemes.main(args)
 
     def test_get_wordset(self):
         stanzas = [find_schemes.Stanza(['word1a', 'word1b']), find_schemes.Stanza(['word2a', 'word2b'])]
@@ -135,7 +126,7 @@ class EvaluateTestCase(BaseTestCase):
 class ParseSchemesTestCase(TestCase):
 
     def setUp(self):
-        self.scheme_filename = '../rhymediscovery/data/schemes.json'
+        self.scheme_filename = 'rhymediscovery/data/schemes.json'
         with open(self.scheme_filename, 'r') as f:
             self.schemes = find_schemes.Schemes(f)
 
