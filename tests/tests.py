@@ -7,8 +7,8 @@ import sys
 
 import numpy
 
-import findschemes
-import evaluate
+import find_schemes
+import evaluate_schemes
 
 
 class BaseTestCase(TestCase):
@@ -17,12 +17,12 @@ class BaseTestCase(TestCase):
         self.init_type = 'o'
         self.output_file = 'out.txt'
         with open(self.endings_file, 'r') as f:
-            self.stanzas = findschemes.load_stanzas(f)
+            self.stanzas = find_schemes.load_stanzas(f)
 
 
-class FindschemesTestCase(BaseTestCase):
+class find_schemesTestCase(BaseTestCase):
     def setUp(self):
-        super(FindschemesTestCase, self).setUp()
+        super(find_schemesTestCase, self).setUp()
 
     def test_main(self):
         args = [
@@ -30,7 +30,7 @@ class FindschemesTestCase(BaseTestCase):
             self.init_type,
             self.output_file,
         ]
-        findschemes.main(args)
+        find_schemes.main(args)
         with open(self.output_file, 'r') as f:
             output = f.read()
             self.assertEqual(output, """\
@@ -48,8 +48,8 @@ schwoll fuß sehnsuchtsvoll gruß ihm geschehn hin gesehn
 
 """)
 
-    def test_basicortho_findschemes(self):
-        results = findschemes.find_schemes(self.stanzas, findschemes.init_basicortho_ttable)
+    def test_basicortho_find_schemes(self):
+        results = find_schemes.find_schemes(self.stanzas, find_schemes.init_basicortho_ttable)
         self.assertEqual(results[0], (
             ('schwoll', 'daran', 'ruhevoll', 'hinan', 'lauscht', 'empor', 'rauscht', 'hervor'),
             (1, 2, 1, 2, 3, 4, 3, 4),
@@ -57,8 +57,8 @@ schwoll fuß sehnsuchtsvoll gruß ihm geschehn hin gesehn
         for stanza, scheme in results:
             self.assertEqual(scheme, (1, 2, 1, 2, 3, 4, 3, 4))
 
-    def test_uniform_init_findschemes(self):
-        results = findschemes.find_schemes(self.stanzas, findschemes.init_uniform_ttable)
+    def test_uniform_init_find_schemes(self):
+        results = find_schemes.find_schemes(self.stanzas, find_schemes.init_uniform_ttable)
         self.assertEqual(results[0], (
             ('schwoll', 'daran', 'ruhevoll', 'hinan', 'lauscht', 'empor', 'rauscht', 'hervor'),
             (1, 2, 1, 2, 3, 4, 3, 4),
@@ -72,26 +72,26 @@ schwoll fuß sehnsuchtsvoll gruß ihm geschehn hin gesehn
             'o',
             'out_all.txt',
         ]
-        findschemes.main(args)
+        find_schemes.main(args)
 
     def test_get_wordset(self):
-        stanzas = [findschemes.Stanza(['word1a', 'word1b']), findschemes.Stanza(['word2a', 'word2b'])]
+        stanzas = [find_schemes.Stanza(['word1a', 'word1b']), find_schemes.Stanza(['word2a', 'word2b'])]
         words = ['word1a', 'word1b', 'word2a', 'word2b']
-        self.assertEqual(findschemes.get_wordlist(stanzas), words)
+        self.assertEqual(find_schemes.get_wordlist(stanzas), words)
 
     def test_init_uniform_table(self):
         words = ['word1', 'word2']
         t_table = numpy.array([[0.5, 0.5, 0.5], [0.5, 0.5, 0.5]])
-        numpy.testing.assert_array_equal(findschemes.init_uniform_ttable(words), t_table)
+        numpy.testing.assert_array_equal(find_schemes.init_uniform_ttable(words), t_table)
 
     def test_get_rhymelists(self):
         words = ['w1', 'w2', 'w3', 'w4']
-        stanza = findschemes.Stanza(words)
+        stanza = find_schemes.Stanza(words)
         stanza.set_word_indices(words)
         scheme1 = (1, 2, 1, 2)
-        self.assertEqual(findschemes.get_rhymelists(stanza, scheme1), [[0, 2], [1, 3]])
+        self.assertEqual(find_schemes.get_rhymelists(stanza, scheme1), [[0, 2], [1, 3]])
         scheme2 = (1, 1, 2, 2)
-        self.assertEqual(findschemes.get_rhymelists(stanza, scheme2), [[0, 1], [2, 3]])
+        self.assertEqual(find_schemes.get_rhymelists(stanza, scheme2), [[0, 1], [2, 3]])
 
 
 class EvaluateTestCase(BaseTestCase):
@@ -104,18 +104,18 @@ class EvaluateTestCase(BaseTestCase):
             self.init_type,
             self.output_file,
         ]
-        findschemes.main(findscheme_args)
+        find_schemes.main(findscheme_args)
         evaluate_args = [
             self.endings_file,
             self.output_file,
         ]
-        evaluate.main(evaluate_args)
+        evaluate_schemes.main(evaluate_args)
 
     def test_evaluate(self):
         with open(self.endings_file, 'r') as f:
-            gstanzaschemes, gstanzas = evaluate.load_gold(f)
-        self.results = findschemes.find_schemes(self.stanzas, findschemes.init_basicortho_ttable)
-        result = evaluate.evaluate(gstanzaschemes, gstanzas, self.results)
+            gstanzaschemes, gstanzas = evaluate_schemes.load_gold(f)
+        self.results = find_schemes.find_schemes(self.stanzas, find_schemes.init_basicortho_ttable)
+        result = evaluate_schemes.evaluate(gstanzaschemes, gstanzas, self.results)
         self.assertEqual(result.num_stanzas, 4)
         self.assertEqual(result.num_lines, 32)
         self.assertEqual(result.num_end_word_types, 29)
@@ -138,7 +138,7 @@ class ParseSchemesTestCase(TestCase):
     def setUp(self):
         self.scheme_filename = '../allschemes.json'
         with open(self.scheme_filename, 'r') as f:
-            self.schemes = findschemes.Schemes(f)
+            self.schemes = find_schemes.Schemes(f)
 
     def test_scheme_list(self):
         self.assertEqual(len(self.schemes.scheme_list), 462)
@@ -156,7 +156,7 @@ class StanzaTestCase(TestCase):
 
     def setUp(self):
         self.words = ['w1', 'w2', 'w3']
-        self.stanza = findschemes.Stanza(self.words)
+        self.stanza = find_schemes.Stanza(self.words)
 
     def test_str(self):
         self.assertEqual(str(self.stanza), 'w1 w2 w3')
