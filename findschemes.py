@@ -10,9 +10,9 @@ import argparse
 import json
 import logging
 import os
-import random
 import sys
 from collections import defaultdict, OrderedDict
+from difflib import SequenceMatcher
 
 import numpy
 
@@ -89,9 +89,32 @@ def get_rhymelists(stanza, scheme):
     Transform stanza into list of ordered lists of rhymesets as defined by rhyme scheme
     """
     rhymelists = defaultdict(list)
-    for word_index, schemeword in zip(stanza.word_indices, scheme):
-        rhymelists[schemeword].append(word_index)
+    for rhyme_group, word_index in zip(scheme, stanza.word_indices):
+        rhymelists[rhyme_group].append(word_index)
     return list(rhymelists.values())
+
+
+def init_distance_ttable(words, distance_function):
+    """
+    Initialize probabilities according to a measure of orthographic similarity
+    """
+    n = len(words)
+    t_table = numpy.zeros((n, n + 1))
+
+    # Initialize P(c|r) accordingly
+    for r, w in enumerate(words):
+        for c, v in enumerate(words):
+            if c < r:
+                t_table[r, c] = t_table[c, r]  # Similarity is symmetric
+            else:
+                t_table[r, c] = distance_function(w, v) + 0.001  # For backoff
+    t_table[:, n] = numpy.random.rand(1, n)  # No estimate for P(r|no history)
+
+    # Normalize
+    t_totals = numpy.sum(t_table, axis=0)
+    for i, t_total in enumerate(t_totals.tolist()):
+        t_table[:, i] /= t_total
+    return t_table
 
 
 def init_uniform_ttable(words):
@@ -114,26 +137,16 @@ def basic_word_sim(word1, word2):
 
 
 def init_basicortho_ttable(words):
-    """
-    Initialize probabilities according to simple measure of orthographic similarity
-    """
-    n = len(words)
-    t_table = numpy.zeros((n, n + 1))
+    return init_distance_ttable(words, basic_word_sim)
 
-    # initialize P(c|r) accordingly
-    for r, w in enumerate(words):
-        for c, v in enumerate(words):
-            if c < r:
-                t_table[r, c] = t_table[c, r]  # similarity is symmetric
-            else:
-                t_table[r, c] = basic_word_sim(w, v) + 0.001  # for backoff
-    t_table[:, n] = numpy.random.rand(1, n)  # no estimate for P(r|no history)
 
-    # normalize
-    t_totals = numpy.sum(t_table, axis=0)
-    for i, t_total in enumerate(t_totals.tolist()):
-        t_table[:, i] /= t_total
-    return t_table
+def difflib_similarity(word1, word2):
+    sequence_matcher = SequenceMatcher(None, word1, word2)
+    return sequence_matcher.ratio()
+
+
+def init_difflib_ttable(words):
+    return init_distance_ttable(words, difflib_similarity)
 
 
 def post_prob_scheme(t_table, words, stanza, scheme):
@@ -213,7 +226,7 @@ def maximization_step(words, stanzas, schemes, probs):
 def iterate(t_table, words, stanzas, schemes, rprobs, maxsteps):
     """iterate steps 2-5 until convergence, return final t_table"""
     data_prob = -10 ** 10
-    epsilon = 0.1
+    epsilon = numpy.finfo(float).eps
 
     probs = None
     ctr = 0
@@ -307,7 +320,7 @@ def find_schemes(stanzas, t_table_init_function=init_uniform_ttable):
 def main(args_list):
     parser = argparse.ArgumentParser(description='Discover schemes of given stanza file')
     parser.add_argument('infile', type=argparse.FileType('r'))
-    parser.add_argument('init_type', choices=('u', 'o', 'p'), default='u')
+    parser.add_argument('init_type', choices=('u', 'o', 'p', 'd'), default='u')
     parser.add_argument('outfile', type=argparse.FileType('w'))
     parser.add_argument(
         '-v', '--verbose',
@@ -326,6 +339,8 @@ def main(args_list):
         init_function = init_basicortho_ttable
     elif args.init_type == 'p':  # init based on rhyming definition
         init_function = celex.init_perfect_ttable
+    elif args.init_type == 'd':  # init based on difflib ratio
+        init_function = init_difflib_ttable
 
     results = find_schemes(stanzas, init_function)
 
