@@ -24,10 +24,10 @@ class SuccessMeasure:
 
     def __str__(self):
         return """\
-Accuracy {accuracy}
-Precision {precision}
-Recall {recall}
-F-score {f_score}""".format(
+Accuracy:\t{accuracy:.2f}
+Precision:\t{precision:.2f}
+Recall:\t\t{recall:.2f}
+F-score:\t{f_score:.2f}""".format(
             accuracy=self.accuracy,
             precision=self.precision,
             recall=self.recall,
@@ -112,7 +112,7 @@ def compare(stanzas, gold_schemes, found_schemes):
     for (g, f) in zip(gold_schemes, found_schemes):
         if g == f:
             correct += 1
-    result.accuracy = 100 * correct / total
+    result.accuracy = correct / total
 
     # for each word, let rhymeset[word] = set of words in rest of stanza rhyming with the word
     # precision = # correct words in rhymeset[word]/# words in proposed rhymeset[word]
