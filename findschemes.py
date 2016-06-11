@@ -127,13 +127,7 @@ def basic_word_sim(word1, word2):
     """
     Simple measure of similarity: Number of letters in common / max length
     """
-    common = 0.0
-    if word1 == word2:
-        return 1.0
-    for c in word1:
-        if c in word2:
-            common += 1
-    return common / max(len(word1), len(word2))
+    return sum([1 for c in word1 if c in word2]) / max(len(word1), len(word2))
 
 
 def init_basicortho_ttable(words):
@@ -224,55 +218,40 @@ def maximization_step(words, stanzas, schemes, probs):
 
 
 def iterate(t_table, words, stanzas, schemes, rprobs, maxsteps):
-    """iterate steps 2-5 until convergence, return final t_table"""
-    data_prob = -10 ** 10
-    epsilon = numpy.finfo(float).eps
+    """
+    Iterate steps 2-5 until convergence, return final probabilities
+    """
+    data_probs = numpy.zeros(len(stanzas))
 
     probs = None
     ctr = 0
-    old_data_prob = None
+    old_data_probs = None
     for ctr in range(maxsteps):
-        old_data_prob = data_prob
+        old_data_probs = data_probs
 
-        # E-step
+        logging.info("Expectation step")
         probs = e_unnorm_post(t_table, words, stanzas, schemes, rprobs)
 
-        # estimate total probability
-        allschemeprobs = numpy.sum(probs, axis=1)
-
-        if 0.0 in allschemeprobs:
-            # This may happen for very large data on large stanzas, small hack to prevent
-            underflows = filter(
-                lambda x: x[2] == 0.0,
-                zip(range(len(stanzas)), stanzas, allschemeprobs)
-            )
-            for underflow in underflows:
-                if len(probs[underflow[0]]) == 1:
-                    probs[underflow[0]][0] = 1e-300
-                    allschemeprobs[underflow[0]] = 1e-300
-                    logging.warning("Fixed underflow error on {}".format(underflow[1]))
-                else:
-                    logging.warning("Problem! {} {}".format(underflow, probs[underflow[0]]))
-
-        allschemeprobs = numpy.log2(allschemeprobs)
+        # Estimate total probability
+        data_probs = numpy.logaddexp.reduce(probs, axis=1)
 
         probs = e_norm_post(probs)  # normalize
 
-        # M-step
+        logging.info("Maximization step")
         t_table, rprobs = maximization_step(words, stanzas, schemes, probs)
 
-        # check convergence
-        data_prob = numpy.sum(allschemeprobs)
-        if ctr > 0 and data_prob - old_data_prob < epsilon:
-            break
+        # Check convergence
+        # if ctr > 0 and numpy.allclose(data_probs, old_data_probs):
+        #     break
 
-        logging.info("Iteration {} -- Log likelihood of data: {}".format(ctr, data_prob))
+        logging.info("Iteration {}".format(ctr))
 
-    # error if it didn't converge
-    if ctr == maxsteps - 1 and data_prob - old_data_prob >= epsilon:
+    # Error if it didn't converge
+    if ctr == maxsteps - 1 and not numpy.allclose(data_probs, old_data_probs):
         logging.warning("Warning: EM did not converge")
 
-    return probs, data_prob
+    logging.info("Stopped after {} interations".format(ctr))
+    return probs
 
 
 def init_uniform_r(schemes):
@@ -297,7 +276,7 @@ def print_results(results, outfile):
     outfile.close()
 
 
-def find_schemes(stanzas, t_table_init_function=init_uniform_ttable):
+def find_schemes(stanzas, t_table_init_function=init_uniform_ttable, num_iterations=10):
     scheme_filename = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'allschemes.json')
     with open(scheme_filename, 'r') as scheme_file:
         schemes = Schemes(scheme_file)
@@ -306,13 +285,15 @@ def find_schemes(stanzas, t_table_init_function=init_uniform_ttable):
     words = get_wordlist(stanzas)
     for stanza in stanzas:
         stanza.set_word_indices(words)
+    logging.info("Initialized {} words".format(len(words)))
 
     # Initialize p(r)
     rprobs = init_uniform_r(schemes)
     t_table = t_table_init_function(words)
-    logging.info("Initialized {} words".format(len(words)))
-    final_probs, data_prob = iterate(t_table, words, stanzas, schemes, rprobs, 100)
+    logging.info("Created t_table with shape {}".format(t_table.shape))
+    final_probs = iterate(t_table, words, stanzas, schemes, rprobs, num_iterations)
 
+    logging.info("EM done; writing results")
     results = get_results(final_probs, stanzas, schemes)
     return results
 
@@ -322,6 +303,7 @@ def main(args_list):
     parser.add_argument('infile', type=argparse.FileType('r'))
     parser.add_argument('init_type', choices=('u', 'o', 'p', 'd'), default='u')
     parser.add_argument('outfile', type=argparse.FileType('w'))
+    parser.add_argument('-i, --iterations', dest='num_iterations', help='Number of iterations', type=int, default=100)
     parser.add_argument(
         '-v', '--verbose',
         help="Verbose output",
@@ -342,7 +324,7 @@ def main(args_list):
     elif args.init_type == 'd':  # init based on difflib ratio
         init_function = init_difflib_ttable
 
-    results = find_schemes(stanzas, init_function)
+    results = find_schemes(stanzas, init_function, args.num_iterations)
 
     print_results(results, args.outfile)
     logging.info("Wrote result")
