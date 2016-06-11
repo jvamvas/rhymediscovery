@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
-"""EM algorithm for learning rhyming words and rhyme schemes with independent stanzas.
-Sravana Reddy (sravana@cs.uchicago.edu), 2011.
+"""
+EM algorithm for learning rhyming words and rhyme schemes with independent stanzas.
+Original implementation: Sravana Reddy (sravana@cs.uchicago.edu), 2011.
 """
 
 from __future__ import division, print_function, unicode_literals
@@ -20,7 +21,9 @@ import celex
 
 
 def load_stanzas(stanzas_file):
-    """Load raw stanzas from gold standard file"""
+    """
+    Load stanzas from gold standard file
+    """
     f = stanzas_file.readlines()
     stanzas = []
     for i, line in enumerate(f):
@@ -33,11 +36,14 @@ def load_stanzas(stanzas_file):
 class Stanza:
 
     def __init__(self, stanza_words):
-        self.words = tuple(stanza_words)
-        self.word_indices = None
+        self.words = tuple(stanza_words)  # Sequence of final words
+        self.word_indices = None  # Indices of words with respect to global wordlist
 
-    def set_word_indices(self, words):
-        self.word_indices = [words.index(word) for word in self.words]
+    def set_word_indices(self, wordlist):
+        """
+        Populate the list of word_indices, mapping self.words to the given wordlist
+        """
+        self.word_indices = [wordlist.index(word) for word in self.words]
 
     def __str__(self):
         return ' '.join(self.words)
@@ -47,15 +53,19 @@ class Stanza:
 
 
 class Schemes:
+    """
+    Stores schemes loaded from schemes.json
+    """
 
     def __init__(self, scheme_file):
         self.scheme_file = scheme_file
-        # Use redundant data structures for lookup optimization
         self.scheme_list, self.scheme_dict = self._parse_scheme_file()
         self.num_schemes = len(self.scheme_list)
-        self.scheme_array = self._create_scheme_array()
 
     def _parse_scheme_file(self):
+        """
+        Initialize redundant data structures for lookup optimization
+        """
         schemes = json.loads(self.scheme_file.read(), object_pairs_hook=OrderedDict)
         scheme_list = []
         scheme_dict = defaultdict(list)
@@ -66,12 +76,9 @@ class Schemes:
                 scheme_dict[int(scheme_len)].append(len(scheme_list) - 1)
         return scheme_list, scheme_dict
 
-    def _create_scheme_array(self):
-        return numpy.arange(self.num_schemes)
-
     def get_schemes_for_len(self, n):
         """
-        :return: List of indices of schemes with length n
+        Returns the indices of all n-length schemes in self.scheme_list
         """
         return self.scheme_dict[n]
 
@@ -80,13 +87,12 @@ def get_wordlist(stanzas):
     """
     Get an iterable of all final words in all stanzas
     """
-    wordlist = sorted(list(set().union(*[stanza.words for stanza in stanzas])))
-    return wordlist
+    return sorted(list(set().union(*[stanza.words for stanza in stanzas])))
 
 
 def get_rhymelists(stanza, scheme):
     """
-    Transform stanza into list of ordered lists of rhymesets as defined by rhyme scheme
+    Returns ordered lists of the stanza's word indices as defined by given scheme
     """
     rhymelists = defaultdict(list)
     for rhyme_group, word_index in zip(scheme, stanza.word_indices):
@@ -94,16 +100,16 @@ def get_rhymelists(stanza, scheme):
     return list(rhymelists.values())
 
 
-def init_distance_ttable(words, distance_function):
+def init_distance_ttable(wordlist, distance_function):
     """
-    Initialize probabilities according to a measure of orthographic similarity
+    Initialize pair-wise rhyme strenghts according to the given word distance function
     """
-    n = len(words)
+    n = len(wordlist)
     t_table = numpy.zeros((n, n + 1))
 
     # Initialize P(c|r) accordingly
-    for r, w in enumerate(words):
-        for c, v in enumerate(words):
+    for r, w in enumerate(wordlist):
+        for c, v in enumerate(wordlist):
             if c < r:
                 t_table[r, c] = t_table[c, r]  # Similarity is symmetric
             else:
@@ -117,9 +123,11 @@ def init_distance_ttable(words, distance_function):
     return t_table
 
 
-def init_uniform_ttable(words):
-    """initialize (normalized) theta uniformly"""
-    n = len(words)
+def init_uniform_ttable(wordlist):
+    """
+    Initialize (normalized) theta uniformly
+    """
+    n = len(wordlist)
     return numpy.ones((n, n + 1)) * (1 / n)
 
 
@@ -130,31 +138,33 @@ def basic_word_sim(word1, word2):
     return sum([1 for c in word1 if c in word2]) / max(len(word1), len(word2))
 
 
-def init_basicortho_ttable(words):
-    return init_distance_ttable(words, basic_word_sim)
+def init_basicortho_ttable(wordlist):
+    return init_distance_ttable(wordlist, basic_word_sim)
 
 
 def difflib_similarity(word1, word2):
+    """
+    Distance function using the built-in difflib ratio
+    """
     sequence_matcher = SequenceMatcher(None, word1, word2)
     return sequence_matcher.ratio()
 
 
-def init_difflib_ttable(words):
-    return init_distance_ttable(words, difflib_similarity)
+def init_difflib_ttable(wordlist):
+    return init_distance_ttable(wordlist, difflib_similarity)
 
 
-def post_prob_scheme(t_table, words, stanza, scheme):
+def post_prob_scheme(t_table, stanza, scheme):
     """
     Compute posterior probability of a scheme for a stanza, with probability of every word in rhymelist
     rhyming with all the ones before it
     """
     myprob = 1
-    n = len(words)
     rhymelists = get_rhymelists(stanza, scheme)
     for rhymelist in rhymelists:
         for i, word_index in enumerate(rhymelist):
             if i == 0:  # first word, use P(w|x)
-                myprob *= t_table[word_index, n]
+                myprob *= t_table[word_index, -1]
             else:
                 for word_index2 in rhymelist[:i]:  # history
                     myprob *= t_table[word_index, word_index2]
@@ -163,34 +173,31 @@ def post_prob_scheme(t_table, words, stanza, scheme):
     return myprob
 
 
-def e_unnorm_post(t_table, words, stanzas, schemes, rprobs):
+def expectation_step(t_table, stanzas, schemes, rprobs):
     """
-    Expectation step: Compute posterior probability of schemes of appropriate length for each stanza
+     Compute posterior probability of schemes for each stanza
     """
     probs = numpy.zeros((len(stanzas), schemes.num_schemes))
     for i, stanza in enumerate(stanzas):
         scheme_indices = schemes.get_schemes_for_len(len(stanza))
         for scheme_index in scheme_indices:
             scheme = schemes.scheme_list[scheme_index]
-            probs[i, scheme_index] = post_prob_scheme(t_table, words, stanza, scheme)
+            probs[i, scheme_index] = post_prob_scheme(t_table, stanza, scheme)
     probs = numpy.dot(probs, numpy.diag(rprobs))
-    return probs
 
-
-def e_norm_post(probs):
-    """
-    Normalize posterior probabilities
-    """
+    # Normalize
     scheme_sums = numpy.sum(probs, axis=1)
-    for i, scheme_sum in enumerate(list(scheme_sums)):
+    for i, scheme_sum in enumerate(scheme_sums.tolist()):
         if scheme_sum > 0:
             probs[i, :] /= scheme_sum
     return probs
 
 
-def maximization_step(words, stanzas, schemes, probs):
-    n = len(words)
-    t_table = numpy.zeros((n, n + 1))
+def maximization_step(num_words, stanzas, schemes, probs):
+    """
+    Update latent variables t_table, rprobs
+    """
+    t_table = numpy.zeros((num_words, num_words + 1))
     rprobs = numpy.ones(schemes.num_schemes)
     for i, stanza in enumerate(stanzas):
         scheme_indices = schemes.get_schemes_for_len(len(stanza))
@@ -201,7 +208,7 @@ def maximization_step(words, stanzas, schemes, probs):
             rhymelists = get_rhymelists(stanza, scheme)
             for rhymelist in rhymelists:
                 for j, word_index in enumerate(rhymelist):
-                    t_table[word_index, n] += myprob
+                    t_table[word_index, -1] += myprob
                     for word_index2 in rhymelist[:j] + rhymelist[j + 1:]:
                         t_table[word_index, word_index2] += myprob
 
@@ -214,39 +221,32 @@ def maximization_step(words, stanzas, schemes, probs):
     # Normalize rprobs
     totrprob = numpy.sum(rprobs)
     rprobs /= totrprob
+
     return t_table, rprobs
 
 
-def iterate(t_table, words, stanzas, schemes, rprobs, maxsteps):
+def iterate(t_table, wordlist, stanzas, schemes, rprobs, maxsteps):
     """
-    Iterate steps 2-5 until convergence, return final probabilities
+    Iterate EM and return final probabilities
     """
     data_probs = numpy.zeros(len(stanzas))
-
-    probs = None
-    ctr = 0
     old_data_probs = None
+    probs = None
+    num_words = len(wordlist)
+
+    ctr = 0
     for ctr in range(maxsteps):
+        logging.info("Iteration {}".format(ctr))
         old_data_probs = data_probs
 
         logging.info("Expectation step")
-        probs = e_unnorm_post(t_table, words, stanzas, schemes, rprobs)
-
-        # Estimate total probability
-        data_probs = numpy.logaddexp.reduce(probs, axis=1)
-
-        probs = e_norm_post(probs)  # normalize
+        probs = expectation_step(t_table, stanzas, schemes, rprobs)
 
         logging.info("Maximization step")
-        t_table, rprobs = maximization_step(words, stanzas, schemes, probs)
+        t_table, rprobs = maximization_step(num_words, stanzas, schemes, probs)
 
-        # Check convergence
-        # if ctr > 0 and numpy.allclose(data_probs, old_data_probs):
-        #     break
-
-        logging.info("Iteration {}".format(ctr))
-
-    # Error if it didn't converge
+    # Warn if it did not converge
+    data_probs = numpy.logaddexp.reduce(probs, axis=1)
     if ctr == maxsteps - 1 and not numpy.allclose(data_probs, old_data_probs):
         logging.warning("Warning: EM did not converge")
 
@@ -255,11 +255,19 @@ def iterate(t_table, words, stanzas, schemes, rprobs, maxsteps):
 
 
 def init_uniform_r(schemes):
-    """assign equal prob to every scheme"""
+    """
+    Assign equal probability to all schemes
+    """
     return numpy.ones(schemes.num_schemes) / schemes.num_schemes
 
 
 def get_results(probs, stanzas, schemes):
+    """
+    Returns a list of tuples (
+        stanza [as list of final words],
+        best scheme [as list of integers]
+    )
+    """
     results = []
     for i, stanza in enumerate(stanzas):
         best_scheme = schemes.scheme_list[numpy.argmax(probs[i, :])]
@@ -268,30 +276,32 @@ def get_results(probs, stanzas, schemes):
 
 
 def print_results(results, outfile):
-    """write rhyme schemes at convergence"""
+    """
+    Write results to outfile
+    """
     for stanza_words, scheme in results:
-        # scheme with highest probability
         outfile.write(str(' ').join(stanza_words) + str('\n'))
         outfile.write(str(' ').join(map(str, scheme)) + str('\n\n'))
     outfile.close()
+    logging.info("Wrote result")
 
 
 def find_schemes(stanzas, t_table_init_function=init_uniform_ttable, num_iterations=10):
-    scheme_filename = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'allschemes.json')
+    scheme_filename = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'schemes.json')
     with open(scheme_filename, 'r') as scheme_file:
         schemes = Schemes(scheme_file)
     logging.info("Loaded files")
 
-    words = get_wordlist(stanzas)
+    wordlist = get_wordlist(stanzas)
     for stanza in stanzas:
-        stanza.set_word_indices(words)
-    logging.info("Initialized {} words".format(len(words)))
+        stanza.set_word_indices(wordlist)
+    logging.info("Initialized list of {} words".format(len(wordlist)))
 
     # Initialize p(r)
     rprobs = init_uniform_r(schemes)
-    t_table = t_table_init_function(words)
+    t_table = t_table_init_function(wordlist)
     logging.info("Created t_table with shape {}".format(t_table.shape))
-    final_probs = iterate(t_table, words, stanzas, schemes, rprobs, num_iterations)
+    final_probs = iterate(t_table, wordlist, stanzas, schemes, rprobs, num_iterations)
 
     logging.info("EM done; writing results")
     results = get_results(final_probs, stanzas, schemes)
@@ -299,6 +309,9 @@ def find_schemes(stanzas, t_table_init_function=init_uniform_ttable, num_iterati
 
 
 def main(args_list):
+    """
+    Wrapper for find_schemes if called from command line
+    """
     parser = argparse.ArgumentParser(description='Discover schemes of given stanza file')
     parser.add_argument('infile', type=argparse.FileType('r'))
     parser.add_argument('init_type', choices=('u', 'o', 'p', 'd'), default='u')
@@ -315,19 +328,18 @@ def main(args_list):
     stanzas = load_stanzas(args.infile)
 
     init_function = None
-    if args.init_type == 'u':  # uniform init
+    if args.init_type == 'u':
         init_function = init_uniform_ttable
-    elif args.init_type == 'o':  # init based on orthographic word sim
+    elif args.init_type == 'o':
         init_function = init_basicortho_ttable
-    elif args.init_type == 'p':  # init based on rhyming definition
+    elif args.init_type == 'p':
         init_function = celex.init_perfect_ttable
-    elif args.init_type == 'd':  # init based on difflib ratio
+    elif args.init_type == 'd':
         init_function = init_difflib_ttable
 
     results = find_schemes(stanzas, init_function, args.num_iterations)
 
     print_results(results, args.outfile)
-    logging.info("Wrote result")
 
 
 if __name__ == '__main__':

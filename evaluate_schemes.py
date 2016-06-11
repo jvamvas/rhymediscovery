@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
-"""Evaluate rhyme schemes against gold standard.
-Also contains some utilities to parse data.
-Jan 2011."""
+"""
+Evaluate rhyme schemes against gold standard.
+"""
 
 from __future__ import division, print_function, unicode_literals
 
@@ -157,7 +157,7 @@ def compare(stanzas, gold_schemes, found_schemes):
 
 def naive(gold_schemes):
     """find naive baseline (most common scheme of a given length)?"""
-    scheme_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'allschemes.json')
+    scheme_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'schemes.json')
     with open(scheme_path, 'r') as f:
         dist = json.loads(f.read())
     best_schemes = {}

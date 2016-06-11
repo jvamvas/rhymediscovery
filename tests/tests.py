@@ -136,7 +136,7 @@ class EvaluateTestCase(BaseTestCase):
 class ParseSchemesTestCase(TestCase):
 
     def setUp(self):
-        self.scheme_filename = '../allschemes.json'
+        self.scheme_filename = '../schemes.json'
         with open(self.scheme_filename, 'r') as f:
             self.schemes = find_schemes.Schemes(f)
 
@@ -144,9 +144,6 @@ class ParseSchemesTestCase(TestCase):
         self.assertEqual(len(self.schemes.scheme_list), 462)
         self.assertEqual(self.schemes.scheme_list[0], (1, 1))
         self.assertEqual(self.schemes.num_schemes, 462)
-
-    def test_scheme_array(self):
-        self.assertEqual(self.schemes.scheme_array.shape, (462,))
 
     def test_get_schemes_for_len(self):
         self.assertEqual(self.schemes.get_schemes_for_len(2), [0])
